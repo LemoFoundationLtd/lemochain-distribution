@@ -95,8 +95,6 @@ func (n *Node) Stop() error {
 		}
 		n.instanceDirLock = nil
 	}
-
-	// close(n.stop)
 	return nil
 }
 

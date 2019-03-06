@@ -37,7 +37,6 @@ type ProtocolManager struct {
 }
 
 func NewProtocolManager(chainID uint16, coreNodeID *p2p.NodeID, coreNodeEndpoint string, chain coreNetwork.BlockChain) *ProtocolManager {
-
 	pm := &ProtocolManager{
 		chainID:         chainID,
 		nodeVersion:     params.VersionUint(),
@@ -413,7 +412,6 @@ func (pm *ProtocolManager) handleBlockHashMsg(msg *p2p.Msg, p *peer) error {
 
 // handleTxsMsg handle transactions message
 func (pm *ProtocolManager) handleTxsMsg(msg *p2p.Msg) error {
-
 	return nil
 }
 
