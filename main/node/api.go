@@ -11,10 +11,8 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-go/common"
 	"github.com/LemoFoundationLtd/lemochain-go/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-go/common/hexutil"
-	"github.com/LemoFoundationLtd/lemochain-go/store"
 	"github.com/LemoFoundationLtd/lemochain-server/chain"
 	"math/big"
-	"runtime"
 	"time"
 )
 
@@ -103,8 +101,16 @@ func (a *PublicAccountAPI) GetAllRewardValue() ([]*params.Reward, error) {
 	return result, nil
 }
 
-//go:generate gencodec -type CandidateInfo -out gen_candidate_info_json.go
+// GetAssetEquity returns asset equity
+func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId common.Hash) (*types.AssetEquity, error) {
+	acc, err := a.GetAccount(LemoAddress)
+	if err != nil {
+		return nil, err
+	}
+	return acc.GetEquityState(assetId)
+}
 
+//go:generate gencodec -type CandidateInfo -out gen_candidate_info_json.go
 type CandidateInfo struct {
 	CandidateAddress string            `json:"address" gencodec:"required"`
 	Votes            string            `json:"votes" gencodec:"required"`
@@ -144,7 +150,7 @@ func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, e
 	candidateList := make([]*CandidateInfo, 0, len(addresses))
 	for i := 0; i < len(addresses); i++ {
 		candidateAccount := c.chain.AccountManager().GetAccount(addresses[i])
-		mapProfile := candidateAccount.GetCandidateProfile()
+		mapProfile := candidateAccount.GetCandidate()
 		if isCandidate, ok := mapProfile[types.CandidateKeyIsCandidate]; !ok || isCandidate == params.NotCandidateNode {
 			err = fmt.Errorf("the node of %s is not candidate node", addresses[i].String())
 			return nil, err
@@ -179,7 +185,7 @@ func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
 		}
 		CandidateAddress := info.GetAddress()
 		CandidateAccount := c.chain.AccountManager().GetAccount(CandidateAddress)
-		profile := CandidateAccount.GetCandidateProfile()
+		profile := CandidateAccount.GetCandidate()
 		candidateInfo.Profile = profile
 		candidateInfo.CandidateAddress = CandidateAddress.String()
 		candidateInfo.Votes = info.GetTotal().String()
@@ -289,48 +295,6 @@ func (n *PublicChainAPI) NodeVersion() string {
 	return params.Version
 }
 
-// PrivateNetAPI
-type PrivateNetAPI struct {
-	node *Node
-}
-
-// NewPrivateNetAPI
-func NewPrivateNetAPI(node *Node) *PrivateNetAPI {
-	return &PrivateNetAPI{node}
-}
-
-// PublicNetAPI
-type PublicNetAPI struct {
-	node *Node
-}
-
-// NewPublicNetAPI
-func NewPublicNetAPI(node *Node) *PublicNetAPI {
-	return &PublicNetAPI{node}
-}
-
-//go:generate gencodec -type NetInfo --field-override netInfoMarshaling -out gen_net_info_json.go
-
-type NetInfo struct {
-	Port     uint32 `json:"port"        gencodec:"required"`
-	NodeName string `json:"nodeName"    gencodec:"required"`
-	Version  string `json:"nodeVersion" gencodec:"required"`
-	OS       string `json:"os"          gencodec:"required"`
-	Go       string `json:"runtime"     gencodec:"required"`
-}
-
-type netInfoMarshaling struct {
-	Port hexutil.Uint32
-}
-
-// Info
-func (n *PublicNetAPI) Info() *NetInfo {
-	return &NetInfo{
-		OS: runtime.GOOS + "-" + runtime.GOARCH,
-		Go: runtime.Version(),
-	}
-}
-
 // TXAPI
 type PublicTxAPI struct {
 	// txpool *chain.TxPool
@@ -374,6 +338,120 @@ func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string,
 	return lastSignTx.Hash(), err
 }
 
+// CreateAsset 创建资产
+func (t *PublicTxAPI) CreateAsset(prv string, category, decimals uint32, isReplenishable, isDivisible bool) (common.Hash, error) {
+	private, _ := crypto.HexToECDSA(prv)
+	issuer := crypto.PubkeyToAddress(private.PublicKey)
+	profile := make(types.Profile)
+	profile[types.AssetName] = "Demo Token"
+	profile[types.AssetSymbol] = "DT"
+	profile[types.AssetDescription] = "test issue token"
+	profile[types.AssetStop] = "false"
+	profile[types.AssetSuggestedGasLimit] = "60000"
+	asset := &types.Asset{
+		Category:        category,
+		IsDivisible:     isDivisible,
+		AssetCode:       common.Hash{},
+		Decimals:        decimals,
+		TotalSupply:     big.NewInt(100000),
+		IsReplenishable: isReplenishable,
+		Issuer:          issuer,
+		Profile:         profile,
+	}
+	data, err := json.Marshal(asset)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, params.CreateAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "create asset tx")
+	signTx, err := types.MakeSigner().SignTx(tx, private)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return t.SendTx(signTx)
+}
+
+// 发行资产
+func (t *PublicTxAPI) IssueAsset(prv string, receiver common.Address, assetCode common.Hash, amount *big.Int, metaData string) (common.Hash, error) {
+	issue := &types.IssueAsset{
+		AssetCode: assetCode,
+		MetaData:  metaData,
+		Amount:    amount,
+	}
+	data, err := json.Marshal(issue)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, params.IssueAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "issue asset tx")
+	private, _ := crypto.HexToECDSA(prv)
+	signTx, err := types.MakeSigner().SignTx(tx, private)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return t.SendTx(signTx)
+}
+
+// 增发资产
+func (t *PublicTxAPI) ReplenishAsset(prv string, receiver common.Address, assetCode, assetId common.Hash, amount *big.Int) (common.Hash, error) {
+	repl := &types.ReplenishAsset{
+		AssetCode: assetCode,
+		AssetId:   assetId,
+		Amount:    amount,
+	}
+	data, err := json.Marshal(repl)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, params.ReplenishAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
+	private, _ := crypto.HexToECDSA(prv)
+	signTx, err := types.MakeSigner().SignTx(tx, private)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return t.SendTx(signTx)
+}
+
+// ModifyAsset 修改资产信息
+func (t *PublicTxAPI) ModifyAsset(prv string, assetCode common.Hash) (common.Hash, error) {
+	info := make(types.Profile)
+	info["name"] = "Modify"
+	info["stop"] = "true"
+	modify := &types.ModifyAssetInfo{
+		AssetCode: assetCode,
+		Info:      info,
+	}
+	data, err := json.Marshal(modify)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, params.ModifyAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "modify asset tx")
+	private, _ := crypto.HexToECDSA(prv)
+	signTx, err := types.MakeSigner().SignTx(tx, private)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return t.SendTx(signTx)
+}
+
+// 交易资产
+func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, assetId common.Hash, amount *big.Int, input []byte) (common.Hash, error) {
+	trading := &types.TradingAsset{
+		AssetId: assetId,
+		Value:   amount,
+		Input:   input,
+	}
+	data, err := json.Marshal(trading)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	tx := types.NewTransaction(to, amount, uint64(500000), big.NewInt(1), data, params.TradingAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
+	private, _ := crypto.HexToECDSA(prv)
+	signTx, err := types.MakeSigner().SignTx(tx, private)
+	if err != nil {
+		return common.Hash{}, err
+	}
+	return t.SendTx(signTx)
+}
+
 // AvailableTx transaction parameter verification
 func AvailableTx(tx *types.Transaction) error {
 	toNameLength := len(tx.ToName())
@@ -406,40 +484,4 @@ func AvailableTx(tx *types.Transaction) error {
 		return txTypeErr
 	}
 	return nil
-}
-
-// GetTxByHash pull the specified transaction through a transaction hash
-func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error) {
-	txHash := common.HexToHash(hash)
-	bizDb := t.node.db.GetBizDatabase()
-	vTxDetail, err := bizDb.GetTxByHash(txHash)
-	return vTxDetail, err
-}
-
-//go:generate gencodec -type TxListRes --field-override txListResMarshaling -out gen_tx_list_res_json.go
-type TxListRes struct {
-	VTransactions []*store.VTransaction `json:"txList" gencodec:"required"`
-	Total         uint32                `json:"total" gencodec:"required"`
-}
-type txListResMarshaling struct {
-	Total hexutil.Uint32
-}
-
-// GetTxListByAddress pull the list of transactions
-func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int) (*TxListRes, error) {
-	src, err := common.StringToAddress(lemoAddress)
-	if err != nil {
-		return nil, err
-	}
-	bizDb := t.node.db.GetBizDatabase()
-	vTxs, total, err := bizDb.GetTxByAddr(src, index, size)
-	if err != nil {
-		return nil, err
-	}
-	txList := &TxListRes{
-		VTransactions: vTxs,
-		Total:         total,
-	}
-
-	return txList, nil
 }

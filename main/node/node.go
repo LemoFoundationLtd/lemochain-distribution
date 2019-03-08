@@ -12,7 +12,7 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-go/store/protocol"
 	"github.com/LemoFoundationLtd/lemochain-server/chain"
 	"github.com/LemoFoundationLtd/lemochain-server/main/config"
-	"github.com/LemoFoundationLtd/lemochain-server/network"
+	. "github.com/LemoFoundationLtd/lemochain-server/network"
 	"net"
 	"os"
 	"path/filepath"
@@ -26,7 +26,7 @@ type Node struct {
 	db     protocol.ChainDB
 	accMan *account.Manager
 	chain  *chain.BlockChain
-	pm     *network.ProtocolManager
+	pm     *ProtocolManager
 
 	txPool *chain.TxPool
 
@@ -57,7 +57,7 @@ func New(cfg *config.Config) (*Node, error) {
 	}
 	h := common.Hash{}
 	copy(h[:], cfg.GenesisHash)
-	pm := network.NewProtocolManager(uint16(cfg.ChainID), h, cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
+	pm := NewProtocolManager(uint16(cfg.ChainID), h, cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
 
 	n := &Node{
 		config: cfg,
@@ -205,18 +205,6 @@ func (n *Node) apis() []rpc.API {
 			Namespace: "account",
 			Version:   "1.0",
 			Service:   NewPrivateAccountAPI(n.accMan),
-			Public:    false,
-		},
-		{
-			Namespace: "net",
-			Version:   "1.0",
-			Service:   NewPublicNetAPI(n),
-			Public:    true,
-		},
-		{
-			Namespace: "net",
-			Version:   "1.0",
-			Service:   NewPrivateNetAPI(n),
 			Public:    false,
 		},
 		{
