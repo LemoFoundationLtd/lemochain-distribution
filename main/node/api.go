@@ -1,7 +1,6 @@
 package node
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,12 +11,9 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-go/common"
 	"github.com/LemoFoundationLtd/lemochain-go/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-go/common/hexutil"
-	"github.com/LemoFoundationLtd/lemochain-go/common/log"
-	"github.com/LemoFoundationLtd/lemochain-go/store"
 	"github.com/LemoFoundationLtd/lemochain-server/chain"
 	"github.com/LemoFoundationLtd/lemochain-server/chain/params"
 	"math/big"
-	"strconv"
 	"time"
 )
 
@@ -146,37 +142,38 @@ func (c *PublicChainAPI) GetDeputyNodeList() []string {
 	return deputynode.Instance().GetLatestDeputies(c.chain.CurrentBlock().Height())
 }
 
-// GetCandidateNodeList get all candidate node list information and return total candidate node
-func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
-	addresses, total, err := c.chain.Db().GetCandidatesPage(index, size)
-	if err != nil {
-		return nil, err
-	}
-	candidateList := make([]*CandidateInfo, 0, len(addresses))
-	for i := 0; i < len(addresses); i++ {
-		candidateAccount := c.chain.AccountManager().GetAccount(addresses[i])
-		mapProfile := candidateAccount.GetCandidate()
-		if isCandidate, ok := mapProfile[types.CandidateKeyIsCandidate]; !ok || isCandidate == coreParams.NotCandidateNode {
-			err = fmt.Errorf("the node of %s is not candidate node", addresses[i].String())
-			return nil, err
-		}
-
-		candidateInfo := &CandidateInfo{
-			Profile: make(map[string]string),
-		}
-
-		candidateInfo.Profile = mapProfile
-		candidateInfo.Votes = candidateAccount.GetVotes().String()
-		candidateInfo.CandidateAddress = addresses[i].String()
-
-		candidateList = append(candidateList, candidateInfo)
-	}
-	result := &CandidateListRes{
-		CandidateList: candidateList,
-		Total:         total,
-	}
-	return result, nil
-}
+//
+// // GetCandidateNodeList get all candidate node list information and return total candidate node
+// func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
+// 	addresses, total, err := c.chain.Db().GetCandidatesPage(index, size)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	candidateList := make([]*CandidateInfo, 0, len(addresses))
+// 	for i := 0; i < len(addresses); i++ {
+// 		candidateAccount := c.chain.AccountManager().GetAccount(addresses[i])
+// 		mapProfile := candidateAccount.GetCandidate()
+// 		if isCandidate, ok := mapProfile[types.CandidateKeyIsCandidate]; !ok || isCandidate == coreParams.NotCandidateNode {
+// 			err = fmt.Errorf("the node of %s is not candidate node", addresses[i].String())
+// 			return nil, err
+// 		}
+//
+// 		candidateInfo := &CandidateInfo{
+// 			Profile: make(map[string]string),
+// 		}
+//
+// 		candidateInfo.Profile = mapProfile
+// 		candidateInfo.Votes = candidateAccount.GetVotes().String()
+// 		candidateInfo.CandidateAddress = addresses[i].String()
+//
+// 		candidateList = append(candidateList, candidateInfo)
+// 	}
+// 	result := &CandidateListRes{
+// 		CandidateList: candidateList,
+// 		Total:         total,
+// 	}
+// 	return result, nil
+// }
 
 // GetCandidateTop30 get top 30 candidate node
 func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
@@ -491,10 +488,10 @@ func AvailableTx(tx *types.Transaction) error {
 	return nil
 }
 
-// PendingTx
-func (t *PublicTxAPI) PendingTx(size int) []*types.Transaction {
-	return t.node.txPool.Pending(size)
-}
+// // PendingTx
+// func (t *PublicTxAPI) PendingTx(size int) []*types.Transaction {
+// 	return t.node.txPool.Pending(size)
+// }
 
 // // GetTxByHash pull the specified transaction through a transaction hash
 // func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error) {
@@ -533,43 +530,43 @@ func (t *PublicTxAPI) PendingTx(size int) []*types.Transaction {
 // }
 
 // ReadContract read variables in a contract includes the return value of a function.
-func (t *PublicTxAPI) ReadContract(to *common.Address, data hexutil.Bytes) (string, error) {
-	ctx := context.Background()
-	result, _, err := t.doCall(ctx, to, coreParams.OrdinaryTx, data, 5*time.Second)
-	return common.ToHex(result), err
-}
+// func (t *PublicTxAPI) ReadContract(to *common.Address, data hexutil.Bytes) (string, error) {
+// 	ctx := context.Background()
+// 	result, _, err := t.doCall(ctx, to, coreParams.OrdinaryTx, data, 5*time.Second)
+// 	return common.ToHex(result), err
+// }
+//
+// // EstimateGas returns an estimate of the amount of gas needed to execute the given transaction.
+// func (t *PublicTxAPI) EstimateGas(to *common.Address, txType uint8, data hexutil.Bytes) (string, error) {
+// 	var costGas uint64
+// 	var err error
+// 	ctx := context.Background()
+// 	_, costGas, err = t.doCall(ctx, to, txType, data, 5*time.Second)
+// 	strCostGas := strconv.FormatUint(costGas, 10)
+// 	return strCostGas, err
+// }
+//
+// // EstimateContractGas returns an estimate of the amount of gas needed to create a smart contract.
+// // todo will delete
+// func (t *PublicTxAPI) EstimateCreateContractGas(data hexutil.Bytes) (uint64, error) {
+// 	ctx := context.Background()
+// 	_, costGas, err := t.doCall(ctx, nil, coreParams.OrdinaryTx, data, 5*time.Second)
+// 	return costGas, err
+// }
 
-// EstimateGas returns an estimate of the amount of gas needed to execute the given transaction.
-func (t *PublicTxAPI) EstimateGas(to *common.Address, txType uint8, data hexutil.Bytes) (string, error) {
-	var costGas uint64
-	var err error
-	ctx := context.Background()
-	_, costGas, err = t.doCall(ctx, to, txType, data, 5*time.Second)
-	strCostGas := strconv.FormatUint(costGas, 10)
-	return strCostGas, err
-}
-
-// EstimateContractGas returns an estimate of the amount of gas needed to create a smart contract.
-// todo will delete
-func (t *PublicTxAPI) EstimateCreateContractGas(data hexutil.Bytes) (uint64, error) {
-	ctx := context.Background()
-	_, costGas, err := t.doCall(ctx, nil, coreParams.OrdinaryTx, data, 5*time.Second)
-	return costGas, err
-}
-
-// doCall
-func (t *PublicTxAPI) doCall(ctx context.Context, to *common.Address, txType uint8, data hexutil.Bytes, timeout time.Duration) ([]byte, uint64, error) {
-	t.node.lock.Lock()
-	defer t.node.lock.Unlock()
-
-	defer func(start time.Time) { log.Debug("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
-	// get latest stableBlock
-	stableBlock := t.node.chain.StableBlock()
-	log.Infof("stable block height = %v", stableBlock.Height())
-	stableHeader := stableBlock.Header
-
-	p := t.node.chain.TxProcessor()
-	ret, costGas, err := p.CallTx(ctx, stableHeader, to, txType, data, common.Hash{}, timeout)
-
-	return ret, costGas, err
-}
+// // doCall
+// func (t *PublicTxAPI) doCall(ctx context.Context, to *common.Address, txType uint8, data hexutil.Bytes, timeout time.Duration) ([]byte, uint64, error) {
+// 	t.node.lock.Lock()
+// 	defer t.node.lock.Unlock()
+//
+// 	defer func(start time.Time) { log.Debug("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
+// 	// get latest stableBlock
+// 	stableBlock := t.node.chain.StableBlock()
+// 	log.Infof("stable block height = %v", stableBlock.Height())
+// 	stableHeader := stableBlock.Header
+//
+// 	p := t.node.chain.TxProcessor()
+// 	ret, costGas, err := p.CallTx(ctx, stableHeader, to, txType, data, common.Hash{}, timeout)
+//
+// 	return ret, costGas, err
+// }
