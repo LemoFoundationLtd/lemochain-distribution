@@ -8,10 +8,10 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-go/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-go/common"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
 	coreNet "github.com/LemoFoundationLtd/lemochain-go/network"
 	"github.com/LemoFoundationLtd/lemochain-go/store"
 	db "github.com/LemoFoundationLtd/lemochain-go/store/protocol"
-	"github.com/LemoFoundationLtd/lemochain-server/common/log"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -133,11 +133,17 @@ func (bc *BlockChain) GetBlockByHash(hash common.Hash) *types.Block {
 
 // CurrentBlock get latest current block
 func (bc *BlockChain) CurrentBlock() *types.Block {
+	if bc.currentBlock.Load() == nil {
+		return nil
+	}
 	return bc.currentBlock.Load().(*types.Block)
 }
 
 // StableBlock get latest stable block
 func (bc *BlockChain) StableBlock() *types.Block {
+	if bc.stableBlock.Load() == nil {
+		return nil
+	}
 	return bc.stableBlock.Load().(*types.Block)
 }
 
@@ -158,23 +164,34 @@ func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err
 	if has, _ := bc.db.IsExistByHash(hash); has {
 		return nil
 	}
+	if block.Height() > 0 {
+		// process changelog
+		if err := bc.am.RebuildAll(block); err != nil {
+			log.Errorf("rebuild account manager failed: %v", err)
+			return err
+		}
+		if err := bc.am.Finalise(); err != nil {
+			panic("init genesis error")
+		}
+	} else {
+		bc.initGenesis(block)
+	}
+
 	if err = bc.db.SetBlock(hash, block); err != nil {
 		log.Errorf("can't insert block to cache. height:%d hash:%s", block.Height(), hash.Prefix())
 		return coreChain.ErrSaveBlock
 	}
-	if block.Height() == 0 {
-		bc.initGenesis(block)
-	}
 	log.Infof("Insert block to chain. height: %d. hash: %s. time: %d. parent: %s", block.Height(), block.Hash().Prefix(), block.Time(), block.ParentHash().Prefix())
-	// process changelog
-	if err := bc.am.RebuildAll(block); err != nil {
-		log.Errorf("rebuild account manager failed: %v", err)
-		return err
-	}
+
 	if err := bc.am.Save(hash); err != nil {
 		log.Errorf("save account manager failed: %v", err)
 		return err
 	}
+	if err = bc.db.SetStableBlock(hash); err != nil {
+		log.Errorf("can't SetStableBlock. height:%d hash:%s", block.Height(), hash.Prefix())
+		return coreChain.ErrSetStableBlockToDB
+	}
+
 	// update deputy nodes
 	bc.updateDeputyNodes(block)
 	bc.currentBlock.Store(block)
@@ -186,6 +203,13 @@ func (bc *BlockChain) initGenesis(b *types.Block) {
 	bc.am = account.NewManager(common.Hash{}, bc.db)
 	total, _ := new(big.Int).SetString("1600000000000000000000000000", 10) // 1.6 billion
 	bc.am.GetAccount(b.MinerAddress()).SetBalance(total)
+	if err := bc.am.Finalise(); err != nil {
+		panic("init genesis error")
+	}
+	b.Header.VersionRoot = bc.am.GetVersionRoot()
+	logs := bc.am.GetChangeLogs()
+	b.SetChangeLogs(logs)
+	b.Header.LogRoot = types.DeriveChangeLogsSha(logs)
 }
 
 func (bc *BlockChain) Db() db.ChainDB {

@@ -99,6 +99,7 @@ func (p *peer) RequestBlocks(from, to uint32) int {
 		log.Warnf("RequestBlocks: rlp encode failed: %v", err)
 		return -2
 	}
+	// log.Debugf("start request blocks: from: %d, to: %d", from, to)
 	p.conn.SetWriteDeadline(DurShort)
 	if err = p.conn.WriteMsg(coreNetwork.GetBlocksWithChangeLogMsg, buf); err != nil {
 		log.Warnf("RequestBlocks: write message failed: %v", err)

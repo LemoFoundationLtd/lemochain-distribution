@@ -3,14 +3,14 @@ package node
 import (
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/account"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/deputynode"
+	"github.com/LemoFoundationLtd/lemochain-go/common"
 	"github.com/LemoFoundationLtd/lemochain-go/common/flock"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
 	coreNode "github.com/LemoFoundationLtd/lemochain-go/main/node"
 	"github.com/LemoFoundationLtd/lemochain-go/network/rpc"
 	"github.com/LemoFoundationLtd/lemochain-go/store"
 	"github.com/LemoFoundationLtd/lemochain-go/store/protocol"
 	"github.com/LemoFoundationLtd/lemochain-server/chain"
-	"github.com/LemoFoundationLtd/lemochain-server/common/log"
 	"github.com/LemoFoundationLtd/lemochain-server/main/config"
 	"github.com/LemoFoundationLtd/lemochain-server/network"
 	"net"
@@ -50,13 +50,14 @@ func initDb(dataDir string, driver string, dns string) protocol.ChainDB {
 }
 
 func New(cfg *config.Config) (*Node, error) {
-	deputynode.SetSelfNodeKey(cfg.NodeKey())
 	db := initDb(cfg.DataDir, cfg.DbDriver, cfg.DbUri)
 	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), db)
 	if err != nil {
 		return nil, err
 	}
-	pm := network.NewProtocolManager(uint16(cfg.ChainID), cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
+	h := common.Hash{}
+	copy(h[:], cfg.GenesisHash)
+	pm := network.NewProtocolManager(uint16(cfg.ChainID), h, cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
 
 	n := &Node{
 		config: cfg,

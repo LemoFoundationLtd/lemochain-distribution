@@ -9,8 +9,8 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-go/common"
 	"github.com/LemoFoundationLtd/lemochain-go/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-go/common/hexutil"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
 	"github.com/LemoFoundationLtd/lemochain-go/network/p2p"
-	"github.com/LemoFoundationLtd/lemochain-server/common/log"
 	"net"
 	"os"
 	"path/filepath"
@@ -87,6 +87,7 @@ func ReadConfigFile(dir string) (*Config, error) {
 	if err = json.NewDecoder(file).Decode(&config); err != nil {
 		return nil, ErrConfig
 	}
+	deputynode.SetSelfNodeKey(config.NodeKey())
 	if err := check(&config); err != nil {
 		return nil, err
 	}

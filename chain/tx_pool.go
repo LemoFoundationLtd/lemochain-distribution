@@ -2,8 +2,8 @@ package chain
 
 import (
 	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
 	"github.com/LemoFoundationLtd/lemochain-go/common/subscribe"
-	"github.com/LemoFoundationLtd/lemochain-server/common/log"
 )
 
 // TxPool add filter in future

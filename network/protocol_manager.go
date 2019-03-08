@@ -5,23 +5,24 @@ import (
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-go/common"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
 	"github.com/LemoFoundationLtd/lemochain-go/common/subscribe"
 	coreNetwork "github.com/LemoFoundationLtd/lemochain-go/network"
 	"github.com/LemoFoundationLtd/lemochain-go/network/p2p"
 	"github.com/LemoFoundationLtd/lemochain-server/chain/params"
-	"github.com/LemoFoundationLtd/lemochain-server/common/log"
 	"sync"
 	"time"
 )
 
 const (
-	ForceSyncInternal = 60 * time.Second
+	ForceSyncInternal = 10 * time.Second
 )
 
 type ProtocolManager struct {
 	chainID         uint16
 	nodeVersion     uint32
 	chain           coreNetwork.BlockChain
+	genesisHash     common.Hash
 	blockCache      *coreNetwork.BlockCache
 	txCh            chan *types.Transaction
 	rcvBlocksCh     chan types.Blocks
@@ -36,13 +37,15 @@ type ProtocolManager struct {
 	quitCh          chan struct{}
 }
 
-func NewProtocolManager(chainID uint16, coreNodeID *p2p.NodeID, coreNodeEndpoint string, chain coreNetwork.BlockChain) *ProtocolManager {
+func NewProtocolManager(chainID uint16, hash common.Hash, coreNodeID *p2p.NodeID, coreNodeEndpoint string, chain coreNetwork.BlockChain) *ProtocolManager {
 	pm := &ProtocolManager{
 		chainID:         chainID,
 		nodeVersion:     params.VersionUint(),
 		chain:           chain,
+		genesisHash:     hash,
 		dialManager:     NewDialManager(coreNodeID, coreNodeEndpoint),
 		blockCache:      coreNetwork.NewBlockCache(),
+		rcvBlocksCh:     make(chan types.Blocks),
 		newPeerCh:       make(chan p2p.IPeer),
 		reconnectPeerCh: make(chan struct{}),
 		dialCh:          make(chan struct{}),
@@ -68,13 +71,14 @@ func (pm *ProtocolManager) unSub() {
 
 // Start
 func (pm *ProtocolManager) Start() {
+	pm.forceSyncTimer = time.NewTimer(ForceSyncInternal)
+	pm.isStopping = false
+
 	go pm.dialLoop()
 	go pm.txLoop()
 	go pm.rcvBlockLoop()
 	go pm.reqStatusLoop()
 
-	pm.forceSyncTimer = time.NewTimer(ForceSyncInternal)
-	pm.isStopping = false
 	pm.dialCh <- struct{}{}
 }
 
@@ -129,6 +133,7 @@ func (pm *ProtocolManager) dialLoop() {
 			if pm.corePeer != nil {
 				break
 			}
+			log.Debugf("recv connection")
 			pm.corePeer = newPeer(p)
 			go pm.handlePeer()
 		case <-pm.reconnectPeerCh:
@@ -186,11 +191,11 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 					pm.corePeer.UpdateStatus(b.Height(), b.Hash())
 				}
 				// block is stale
-				if b.Height() <= pm.chain.StableBlock().Height() || pm.chain.HasBlock(b.Hash()) {
+				if pm.chain.StableBlock() != nil && (b.Height() <= pm.chain.StableBlock().Height() || pm.chain.HasBlock(b.Hash())) {
 					continue
 				}
 				// local chain has this block
-				if pm.chain.HasBlock(b.ParentHash()) {
+				if b.Height() == 0 || pm.chain.HasBlock(b.ParentHash()) {
 					pm.insertBlock(b)
 				} else {
 					pm.blockCache.Add(b)
@@ -233,7 +238,12 @@ func (pm *ProtocolManager) reqStatusLoop() {
 			return
 		case <-pm.forceSyncTimer.C:
 			if pm.corePeer != nil {
-				pm.corePeer.SendReqLatestStatus()
+				if pm.chain.CurrentBlock() == nil || pm.corePeer.LatestStatus().CurHeight > pm.chain.CurrentBlock().Height() {
+					sta := pm.corePeer.LatestStatus()
+					pm.forceSyncBlock(&sta, pm.corePeer)
+				} else {
+					pm.corePeer.SendReqLatestStatus()
+				}
 				pm.forceSyncTimer.Reset(ForceSyncInternal)
 			}
 		}
@@ -257,8 +267,12 @@ func (pm *ProtocolManager) handlePeer() {
 		pm.resetDialTask()
 		return
 	}
+	curHeight := uint32(0)
 	// synchronise block
-	if pm.chain.CurrentBlock().Height() < rStatus.LatestStatus.StaHeight {
+	if pm.chain.CurrentBlock() != nil {
+		curHeight = pm.chain.CurrentBlock().Height()
+	}
+	if curHeight < rStatus.LatestStatus.StaHeight {
 		from, err := pm.findSyncFrom(&rStatus.LatestStatus)
 		if err != nil {
 			log.Warnf("find sync from error: %v", err)
@@ -267,6 +281,7 @@ func (pm *ProtocolManager) handlePeer() {
 		}
 		p.RequestBlocks(from, rStatus.LatestStatus.StaHeight)
 	}
+	log.Debugf("start handle msg")
 
 	for {
 		// handle peer net message
@@ -282,13 +297,13 @@ func (pm *ProtocolManager) handlePeer() {
 func (pm *ProtocolManager) handshake(p *peer) (*ProtocolHandshake, error) {
 	phs := &ProtocolHandshake{
 		ChainID:     pm.chainID,
-		GenesisHash: pm.chain.Genesis().Hash(),
+		GenesisHash: pm.genesisHash,
 		NodeVersion: pm.nodeVersion,
 		LatestStatus: LatestStatus{
-			CurHash:   pm.chain.CurrentBlock().Hash(),
-			CurHeight: pm.chain.CurrentBlock().Height(),
-			StaHash:   pm.chain.StableBlock().Hash(),
-			StaHeight: pm.chain.StableBlock().Height(),
+			CurHash:   common.Hash{},
+			CurHeight: 0,
+			StaHash:   common.Hash{},
+			StaHeight: 0,
 		},
 	}
 	content := phs.Bytes()
@@ -304,7 +319,7 @@ func (pm *ProtocolManager) handshake(p *peer) (*ProtocolHandshake, error) {
 
 // forceSyncBlock force to sync block
 func (pm *ProtocolManager) forceSyncBlock(status *LatestStatus, p *peer) {
-	if status.StaHeight <= pm.chain.CurrentBlock().Height() {
+	if pm.chain.CurrentBlock() != nil && status.StaHeight <= pm.chain.CurrentBlock().Height() {
 		return
 	}
 	from, err := pm.findSyncFrom(status)
@@ -321,7 +336,9 @@ func (pm *ProtocolManager) findSyncFrom(rStatus *LatestStatus) (uint32, error) {
 	var from uint32
 	curBlock := pm.chain.CurrentBlock()
 	staBlock := pm.chain.StableBlock()
-
+	if curBlock == nil {
+		return 0, nil
+	}
 	if staBlock.Height() < rStatus.StaHeight {
 		if curBlock.Height() < rStatus.StaHeight {
 			from = staBlock.Height() + 1
@@ -348,6 +365,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if msg.Code == coreNetwork.BlocksMsg {
+			log.Debugf("receive msg: %d", msg.Code)
+		}
+	}()
 
 	switch msg.Code {
 	case coreNetwork.LstStatusMsg:

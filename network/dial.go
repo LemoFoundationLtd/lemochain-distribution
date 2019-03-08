@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/deputynode"
 	"github.com/LemoFoundationLtd/lemochain-go/common"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
 	"github.com/LemoFoundationLtd/lemochain-go/common/subscribe"
 	"github.com/LemoFoundationLtd/lemochain-go/network/p2p"
-	"github.com/LemoFoundationLtd/lemochain-server/common/log"
 	"net"
 	"time"
 )
@@ -62,6 +62,7 @@ func (dm *DialManager) handleConn(fd net.Conn) error {
 		return p2p.ErrConnectSelf
 	}
 	go dm.runPeer(p)
+	subscribe.Send(subscribe.AddNewPeer, p)
 	return nil
 }
 
