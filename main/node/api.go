@@ -1,18 +1,23 @@
 package node
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/account"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/deputynode"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/params"
+	coreParams "github.com/LemoFoundationLtd/lemochain-go/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-go/common"
 	"github.com/LemoFoundationLtd/lemochain-go/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-go/common/hexutil"
+	"github.com/LemoFoundationLtd/lemochain-go/common/log"
+	"github.com/LemoFoundationLtd/lemochain-go/store"
 	"github.com/LemoFoundationLtd/lemochain-server/chain"
+	"github.com/LemoFoundationLtd/lemochain-server/chain/params"
 	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -84,17 +89,17 @@ func (a *PublicAccountAPI) GetVoteFor(LemoAddress string) (string, error) {
 }
 
 // GetAllRewardValue get the value for each bonus
-func (a *PublicAccountAPI) GetAllRewardValue() ([]*params.Reward, error) {
-	address := params.TermRewardPrecompiledContractAddress
+func (a *PublicAccountAPI) GetAllRewardValue() ([]*coreParams.Reward, error) {
+	address := coreParams.TermRewardPrecompiledContractAddress
 	acc, err := a.GetAccount(address.String())
 	if err != nil {
 		return nil, err
 	}
 	key := address.Hash()
 	value, err := acc.GetStorageState(key)
-	rewardMap := make(params.RewardsMap)
+	rewardMap := make(coreParams.RewardsMap)
 	json.Unmarshal(value, &rewardMap)
-	var result = make([]*params.Reward, 0)
+	var result = make([]*coreParams.Reward, 0)
 	for _, v := range rewardMap {
 		result = append(result, v)
 	}
@@ -151,7 +156,7 @@ func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, e
 	for i := 0; i < len(addresses); i++ {
 		candidateAccount := c.chain.AccountManager().GetAccount(addresses[i])
 		mapProfile := candidateAccount.GetCandidate()
-		if isCandidate, ok := mapProfile[types.CandidateKeyIsCandidate]; !ok || isCandidate == params.NotCandidateNode {
+		if isCandidate, ok := mapProfile[types.CandidateKeyIsCandidate]; !ok || isCandidate == coreParams.NotCandidateNode {
 			err = fmt.Errorf("the node of %s is not candidate node", addresses[i].String())
 			return nil, err
 		}
@@ -290,8 +295,8 @@ func (c *PublicChainAPI) GasPriceAdvice() *big.Int {
 	return big.NewInt(100000000)
 }
 
-// NodeVersion
-func (n *PublicChainAPI) NodeVersion() string {
+// GetServerVersion
+func (c *PublicChainAPI) GetServerVersion() string {
 	return params.Version
 }
 
@@ -362,7 +367,7 @@ func (t *PublicTxAPI) CreateAsset(prv string, category, decimals uint32, isReple
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, params.CreateAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "create asset tx")
+	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, coreParams.CreateAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "create asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -381,7 +386,7 @@ func (t *PublicTxAPI) IssueAsset(prv string, receiver common.Address, assetCode 
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, params.IssueAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "issue asset tx")
+	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.IssueAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "issue asset tx")
 	private, _ := crypto.HexToECDSA(prv)
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -401,7 +406,7 @@ func (t *PublicTxAPI) ReplenishAsset(prv string, receiver common.Address, assetC
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, params.ReplenishAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
+	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.ReplenishAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
 	private, _ := crypto.HexToECDSA(prv)
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -423,7 +428,7 @@ func (t *PublicTxAPI) ModifyAsset(prv string, assetCode common.Hash) (common.Has
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, params.ModifyAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "modify asset tx")
+	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, coreParams.ModifyAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "modify asset tx")
 	private, _ := crypto.HexToECDSA(prv)
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -443,7 +448,7 @@ func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, ass
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(to, amount, uint64(500000), big.NewInt(1), data, params.TradingAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
+	tx := types.NewTransaction(to, amount, uint64(500000), big.NewInt(1), data, coreParams.TradingAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
 	private, _ := crypto.HexToECDSA(prv)
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -465,15 +470,15 @@ func AvailableTx(tx *types.Transaction) error {
 		return txMessageErr
 	}
 	switch tx.Type() {
-	case params.OrdinaryTx:
+	case coreParams.OrdinaryTx:
 		if tx.To() == nil {
 			if len(tx.Data()) == 0 {
 				createContractErr := errors.New("The data of contract creation transaction can't be null ")
 				return createContractErr
 			}
 		}
-	case params.VoteTx:
-	case params.RegisterTx:
+	case coreParams.VoteTx:
+	case coreParams.RegisterTx:
 		if len(tx.Data()) == 0 {
 			registerTxErr := errors.New("The data of contract creation transaction can't be null ")
 
@@ -484,4 +489,87 @@ func AvailableTx(tx *types.Transaction) error {
 		return txTypeErr
 	}
 	return nil
+}
+
+// PendingTx
+func (t *PublicTxAPI) PendingTx(size int) []*types.Transaction {
+	return t.node.txPool.Pending(size)
+}
+
+// // GetTxByHash pull the specified transaction through a transaction hash
+// func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error) {
+// 	txHash := common.HexToHash(hash)
+// 	bizDb := t.node.db.GetBizDatabase()
+// 	vTxDetail, err := bizDb.GetTxByHash(txHash)
+// 	return vTxDetail, err
+// }
+//
+// //go:generate gencodec -type TxListRes --field-override txListResMarshaling -out gen_tx_list_res_json.go
+// type TxListRes struct {
+// 	VTransactions []*store.VTransaction `json:"txList" gencodec:"required"`
+// 	Total         uint32                `json:"total" gencodec:"required"`
+// }
+// type txListResMarshaling struct {
+// 	Total hexutil.Uint32
+// }
+//
+// // GetTxListByAddress pull the list of transactions
+// func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int) (*TxListRes, error) {
+// 	src, err := common.StringToAddress(lemoAddress)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	bizDb := t.node.db.GetBizDatabase()
+// 	vTxs, total, err := bizDb.GetTxByAddr(src, index, size)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	txList := &TxListRes{
+// 		VTransactions: vTxs,
+// 		Total:         total,
+// 	}
+//
+// 	return txList, nil
+// }
+
+// ReadContract read variables in a contract includes the return value of a function.
+func (t *PublicTxAPI) ReadContract(to *common.Address, data hexutil.Bytes) (string, error) {
+	ctx := context.Background()
+	result, _, err := t.doCall(ctx, to, coreParams.OrdinaryTx, data, 5*time.Second)
+	return common.ToHex(result), err
+}
+
+// EstimateGas returns an estimate of the amount of gas needed to execute the given transaction.
+func (t *PublicTxAPI) EstimateGas(to *common.Address, txType uint8, data hexutil.Bytes) (string, error) {
+	var costGas uint64
+	var err error
+	ctx := context.Background()
+	_, costGas, err = t.doCall(ctx, to, txType, data, 5*time.Second)
+	strCostGas := strconv.FormatUint(costGas, 10)
+	return strCostGas, err
+}
+
+// EstimateContractGas returns an estimate of the amount of gas needed to create a smart contract.
+// todo will delete
+func (t *PublicTxAPI) EstimateCreateContractGas(data hexutil.Bytes) (uint64, error) {
+	ctx := context.Background()
+	_, costGas, err := t.doCall(ctx, nil, coreParams.OrdinaryTx, data, 5*time.Second)
+	return costGas, err
+}
+
+// doCall
+func (t *PublicTxAPI) doCall(ctx context.Context, to *common.Address, txType uint8, data hexutil.Bytes, timeout time.Duration) ([]byte, uint64, error) {
+	t.node.lock.Lock()
+	defer t.node.lock.Unlock()
+
+	defer func(start time.Time) { log.Debug("Executing EVM call finished", "runtime", time.Since(start)) }(time.Now())
+	// get latest stableBlock
+	stableBlock := t.node.chain.StableBlock()
+	log.Infof("stable block height = %v", stableBlock.Height())
+	stableHeader := stableBlock.Header
+
+	p := t.node.chain.TxProcessor()
+	ret, costGas, err := p.CallTx(ctx, stableHeader, to, txType, data, common.Hash{}, timeout)
+
+	return ret, costGas, err
 }
