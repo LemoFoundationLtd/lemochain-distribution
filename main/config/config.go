@@ -79,6 +79,9 @@ type ConfigMarshaling struct {
 
 func ReadConfigFile(dir string) (*Config, error) {
 	filePath := filepath.Join(dir, configName)
+	if _, err := os.Stat(filePath); err != nil {
+		filePath = configName
+	}
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.New(err.Error() + "\r\n" + ConfigGuideUrl)
