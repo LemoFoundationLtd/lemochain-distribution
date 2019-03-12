@@ -1,0 +1,17 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "D84lc0EqDR5n5gPJ3wn4FzmALyk=",
+			"path": "github.com/go-sql-driver/mysql",
+			"revision": "2c9d54fefcfb443251f5b92cd5106cf4dc07b880",
+			"revisionTime": "2019-03-08T05:26:31Z"
+		},
+		{
+			"path": "google.golang.org/appengine/cloudsql",
+			"revision": ""
+		}
+	],
+	"rootPath": "github.com/LemoFoundationLtd/lemochain-server"
+}
