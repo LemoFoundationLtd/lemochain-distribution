@@ -182,6 +182,9 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 		case blocks := <-pm.rcvBlocksCh:
 			pm.forceSyncTimer.Reset(ForceSyncInternal)
 
+			if pm.corePeer == nil {
+				break
+			}
 			// peer's latest height
 			pLstHeight := pm.corePeer.LatestStatus().CurHeight
 
@@ -309,6 +312,9 @@ func (pm *ProtocolManager) handshake(p *peer) (*ProtocolHandshake, error) {
 	content := phs.Bytes()
 	if content == nil {
 		return nil, errors.New("rlp encode error")
+	}
+	if pm.corePeer == nil {
+		return nil, errors.New("peer has closed")
 	}
 	remoteStatus, err := p.Handshake(content)
 	if err != nil {
