@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/LemoFoundationLtd/lemochain-go/common/log"
-	coreNode "github.com/LemoFoundationLtd/lemochain-go/main/node"
+	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	coreNode "github.com/LemoFoundationLtd/lemochain-core/main/node"
 	"github.com/LemoFoundationLtd/lemochain-server/main/config"
 	"github.com/LemoFoundationLtd/lemochain-server/main/node"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"syscall"
 )
 
-var stopCh chan struct{}
+var stopCh = make(chan struct{})
 
 func main() {
 	dir := filepath.Dir(os.Args[0])

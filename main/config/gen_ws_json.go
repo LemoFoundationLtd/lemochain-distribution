@@ -5,7 +5,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/LemoFoundationLtd/lemochain-go/common/hexutil"
+	"github.com/LemoFoundationLtd/lemochain-core/common/hexutil"
 )
 
 var _ = (*RpcMarshaling)(nil)

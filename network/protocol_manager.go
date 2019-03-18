@@ -3,19 +3,19 @@ package network
 import (
 	"errors"
 	"fmt"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
-	"github.com/LemoFoundationLtd/lemochain-go/common"
-	"github.com/LemoFoundationLtd/lemochain-go/common/log"
-	"github.com/LemoFoundationLtd/lemochain-go/common/subscribe"
-	coreNetwork "github.com/LemoFoundationLtd/lemochain-go/network"
-	"github.com/LemoFoundationLtd/lemochain-go/network/p2p"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
+	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"github.com/LemoFoundationLtd/lemochain-core/common/subscribe"
+	coreNetwork "github.com/LemoFoundationLtd/lemochain-core/network"
+	"github.com/LemoFoundationLtd/lemochain-core/network/p2p"
 	"github.com/LemoFoundationLtd/lemochain-server/chain/params"
 	"sync"
 	"time"
 )
 
 const (
-	ForceSyncInternal = 10 * time.Second
+	ForceSyncInterval = 10 * time.Second
 )
 
 type ProtocolManager struct {
@@ -71,7 +71,7 @@ func (pm *ProtocolManager) unSub() {
 
 // Start
 func (pm *ProtocolManager) Start() {
-	pm.forceSyncTimer = time.NewTimer(ForceSyncInternal)
+	pm.forceSyncTimer = time.NewTimer(ForceSyncInterval)
 	pm.isStopping = false
 
 	go pm.dialLoop()
@@ -180,7 +180,7 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 			log.Info("blockLoop finished")
 			return
 		case blocks := <-pm.rcvBlocksCh:
-			pm.forceSyncTimer.Reset(ForceSyncInternal)
+			pm.forceSyncTimer.Reset(ForceSyncInterval)
 
 			if pm.corePeer == nil {
 				break
@@ -247,7 +247,7 @@ func (pm *ProtocolManager) reqStatusLoop() {
 				} else {
 					pm.corePeer.SendReqLatestStatus()
 				}
-				pm.forceSyncTimer.Reset(ForceSyncInternal)
+				pm.forceSyncTimer.Reset(ForceSyncInterval)
 			}
 		}
 	}

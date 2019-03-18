@@ -2,16 +2,16 @@ package chain
 
 import (
 	"fmt"
-	coreChain "github.com/LemoFoundationLtd/lemochain-go/chain"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/account"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/deputynode"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/params"
-	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
-	"github.com/LemoFoundationLtd/lemochain-go/common"
-	"github.com/LemoFoundationLtd/lemochain-go/common/log"
-	coreNet "github.com/LemoFoundationLtd/lemochain-go/network"
-	"github.com/LemoFoundationLtd/lemochain-go/store"
-	db "github.com/LemoFoundationLtd/lemochain-go/store/protocol"
+	coreChain "github.com/LemoFoundationLtd/lemochain-core/chain"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
+	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	coreNet "github.com/LemoFoundationLtd/lemochain-core/network"
+	"github.com/LemoFoundationLtd/lemochain-core/store"
+	db "github.com/LemoFoundationLtd/lemochain-core/store/protocol"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -171,7 +171,7 @@ func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err
 			return err
 		}
 		if err := bc.am.Finalise(); err != nil {
-			panic("init genesis error")
+			panic("init genesis error01")
 		}
 	} else {
 		bc.initGenesis(block)
@@ -204,7 +204,7 @@ func (bc *BlockChain) initGenesis(b *types.Block) {
 	total, _ := new(big.Int).SetString("1600000000000000000000000000", 10) // 1.6 billion
 	bc.am.GetAccount(b.MinerAddress()).SetBalance(total)
 	if err := bc.am.Finalise(); err != nil {
-		panic("init genesis error")
+		panic("init genesis error02")
 	}
 	b.Header.VersionRoot = bc.am.GetVersionRoot()
 	logs := bc.am.GetChangeLogs()

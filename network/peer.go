@@ -1,12 +1,12 @@
 package network
 
 import (
-	"github.com/LemoFoundationLtd/lemochain-go/chain/types"
-	"github.com/LemoFoundationLtd/lemochain-go/common"
-	"github.com/LemoFoundationLtd/lemochain-go/common/log"
-	"github.com/LemoFoundationLtd/lemochain-go/common/rlp"
-	coreNetwork "github.com/LemoFoundationLtd/lemochain-go/network"
-	"github.com/LemoFoundationLtd/lemochain-go/network/p2p"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
+	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
+	coreNetwork "github.com/LemoFoundationLtd/lemochain-core/network"
+	"github.com/LemoFoundationLtd/lemochain-core/network/p2p"
 	"sync"
 	"time"
 )
