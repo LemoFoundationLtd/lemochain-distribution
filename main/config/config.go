@@ -77,15 +77,19 @@ type ConfigMarshaling struct {
 	LogLevel    hexutil.Uint32
 }
 
-func ReadConfigFile(dir string) (*Config, error) {
+func ReadConfigFile() (*Config, error) {
+	// Try to read from system temp directory
+	dir := filepath.Dir(os.Args[0])
 	filePath := filepath.Join(dir, configName)
 	if _, err := os.Stat(filePath); err != nil {
+		// Try to read from relative path
 		filePath = configName
 	}
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.New(err.Error() + "\r\n" + ConfigGuideUrl)
 	}
+
 	var config Config
 	if err = json.NewDecoder(file).Decode(&config); err != nil {
 		return nil, ErrConfig
@@ -184,21 +188,27 @@ func checkNodeString(node string) (*p2p.NodeID, string) {
 	if len(tmp) != 2 {
 		return nil, ""
 	}
-	if len(tmp[0]) != 128 {
+	var nodeID = tmp[0]
+	var IP = tmp[1]
+
+	// nodeID
+	if len(nodeID) != 128 {
 		return nil, ""
 	}
-	nodeID := p2p.BytesToNodeID(common.FromHex(tmp[0]))
-	_, err := nodeID.PubKey()
+	parsedNodeID := p2p.BytesToNodeID(common.FromHex(nodeID))
+	_, err := parsedNodeID.PubKey()
 	if err != nil {
 		return nil, ""
 	}
-	if bytes.Compare(nodeID[:], deputynode.GetSelfNodeID()) == 0 {
+	if bytes.Compare(parsedNodeID[:], deputynode.GetSelfNodeID()) == 0 {
 		return nil, ""
 	}
-	if !verifyIP(tmp[1]) {
+
+	// IP
+	if !verifyIP(IP) {
 		return nil, ""
 	}
-	return nodeID, tmp[1]
+	return parsedNodeID, IP
 }
 
 // verifyIP  verify ipv4

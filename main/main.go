@@ -8,15 +8,13 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-server/main/node"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 )
 
 var stopCh = make(chan struct{})
 
 func main() {
-	dir := filepath.Dir(os.Args[0])
-	cfg, err := config.ReadConfigFile(dir)
+	cfg, err := config.ReadConfigFile()
 	if err != nil {
 		panic(fmt.Sprintf("config file read error: %v", err))
 	}
