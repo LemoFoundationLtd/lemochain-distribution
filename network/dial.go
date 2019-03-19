@@ -33,6 +33,7 @@ func (dm *DialManager) Dial() {
 	conn, err := net.DialTimeout("tcp", dm.coreNodeEndpoint, 3*time.Second)
 	if err != nil {
 		log.Warnf("dial node error: %s", err.Error())
+		time.Sleep(3 * time.Second)
 		subscribe.Send(ReconnectNode, struct{}{})
 		return
 	}
