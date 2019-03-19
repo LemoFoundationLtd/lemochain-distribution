@@ -58,7 +58,7 @@ type RpcWS struct {
 type Config struct {
 	ChainID     uint32  `json:"chainID"        gencodec:"required"`
 	GenesisHash []byte  `json:"genesisHash"    gencodec:"required"`
-	DataDir     string  `json:"dataDir"        gencodec:"required"`
+	DataDir     string  `json:"serverDataDir"        gencodec:"required"`
 	DbUri       string  `json:"dbUri"          gencodec:"required"` // sample: root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4
 	DbDriver    string  `json:"dbDriver"       gencodec:"required"`
 	LogLevel    uint32  `json:"logLevel"       gencodec:"required"`
