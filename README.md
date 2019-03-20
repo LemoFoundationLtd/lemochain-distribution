@@ -31,20 +31,20 @@
 }
 ```
 其中：
-- [ ] chainID: 与要连接的lemochain-core一致
-- [ ] genesisHash： 与要连接的lemochain-core一致
-- [ ] serverDataDir： 区块等相关数据存放目录
-- [ ] dbUri： 数据库连接字符串
-- [ ] dbDriver： 数据库类型
-- [ ] logLevel： 日志输出级别
-- [ ] coreNode： 被连接的lemochain-core相关NodeID与IP端口
-- [ ] http、webSocket：rpc配置
-- [ ] http.disable： 是否禁止http服务，默认开启
-- [ ] http.port：http服务器端口
-- [ ] http.corsDomain：http跨域允许列表
-- [ ] http.virtualHosts：http虚拟主机
-- [ ] http.listenAddress：http监听地址
-- [ ] webSocket.disable：是否禁止websocket服务，默认开启
-- [ ] webSocket.port；websocket服务器端口
-- [ ] webSocket.corsDomain：websocket允许跨域域名列表
-- [ ] webSocket.listenAddress：websocket监听地址
+- chainID: 与要连接的lemochain-core一致
+- genesisHash： 与要连接的lemochain-core一致
+- serverDataDir： 区块等相关数据存放目录
+- dbUri： 数据库连接字符串
+- dbDriver： 数据库类型
+- logLevel： 日志输出级别
+- coreNode： 被连接的lemochain-core相关NodeID与IP端口
+- http、webSocket：rpc配置
+- http.disable： 是否禁止http服务，默认开启
+- http.port：http服务器端口
+- http.corsDomain：http跨域允许列表
+- http.virtualHosts：http虚拟主机
+- http.listenAddress：http监听地址
+- webSocket.disable：是否禁止websocket服务，默认开启
+- webSocket.port；websocket服务器端口
+- webSocket.corsDomain：websocket允许跨域域名列表
+- webSocket.listenAddress：websocket监听地址
