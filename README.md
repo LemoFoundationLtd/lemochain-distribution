@@ -1,16 +1,16 @@
 ![Logo of the project](./logo.png)
 
-# LemoChain-Server
+# LemoChain-Distribution
 
 
 #### 配置文件
-- 文件名：server-config.json，且与程序可执行文件放在同级目录下；
+- 文件名：distribution-config.json，且与程序可执行文件放在同级目录下；
 - 文件范例
 ```
 {
 	"chainID": 100,
 	"genesisHash": "0x531d9cccfc39cdb1957a4eac21f0154eb6c192a76123ca786adebf54821d53b4",
-	"dataDir": "./lemo-server",
+	"serverDataDir": "./lemo-distribution",
 	"dbUri": "root:123456@tcp(127.0.0.1:3306)/lemo02?charset=utf8mb4",
 	"dbDriver": "mysql",
 	"logLevel": 5,
@@ -33,7 +33,7 @@
 其中：
 - [ ] chainID: 与要连接的lemochain-core一致
 - [ ] genesisHash： 与要连接的lemochain-core一致
-- [ ] dataDir： 区块等相关数据存放目录
+- [ ] serverDataDir： 区块等相关数据存放目录
 - [ ] dbUri： 数据库连接字符串
 - [ ] dbDriver： 数据库类型
 - [ ] logLevel： 日志输出级别
