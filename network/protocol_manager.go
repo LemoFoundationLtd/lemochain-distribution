@@ -9,7 +9,7 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common/subscribe"
 	coreNetwork "github.com/LemoFoundationLtd/lemochain-core/network"
 	"github.com/LemoFoundationLtd/lemochain-core/network/p2p"
-	"github.com/LemoFoundationLtd/lemochain-server/chain/params"
+	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
 	"sync"
 	"time"
 )

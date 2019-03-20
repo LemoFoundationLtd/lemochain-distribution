@@ -11,8 +11,8 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-core/common/hexutil"
-	"github.com/LemoFoundationLtd/lemochain-server/chain"
-	"github.com/LemoFoundationLtd/lemochain-server/chain/params"
+	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
+	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
 	"math/big"
 	"time"
 )
