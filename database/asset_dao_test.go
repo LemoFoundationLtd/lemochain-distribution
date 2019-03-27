@@ -102,6 +102,11 @@ func TestAssetDao_GetPageWithTotal(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(result))
 	assert.Equal(t, 5, total)
+
+	result, total, err = assetDao.GetPageWithTotal(common.HexToAddress("0x123456789"), 0, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(result))
+	assert.Equal(t, 0, total)
 }
 
 func TestAssetDao_GetNotExist(t *testing.T) {
