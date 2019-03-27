@@ -16,7 +16,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 	type Config struct {
 		ChainID     hexutil.Uint32 `json:"chainID"        gencodec:"required"`
 		GenesisHash hexutil.Bytes  `json:"genesisHash"    gencodec:"required"`
-		DataDir     string         `json:"dataDir"        gencodec:"required"`
+		DataDir     string         `json:"serverDataDir"        gencodec:"required"`
 		DbUri       string         `json:"dbUri"          gencodec:"required"`
 		DbDriver    string         `json:"dbDriver"       gencodec:"required"`
 		LogLevel    hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
@@ -42,7 +42,7 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 	type Config struct {
 		ChainID     *hexutil.Uint32 `json:"chainID"        gencodec:"required"`
 		GenesisHash *hexutil.Bytes  `json:"genesisHash"    gencodec:"required"`
-		DataDir     *string         `json:"dataDir"        gencodec:"required"`
+		DataDir     *string         `json:"serverDataDir"        gencodec:"required"`
 		DbUri       *string         `json:"dbUri"          gencodec:"required"`
 		DbDriver    *string         `json:"dbDriver"       gencodec:"required"`
 		LogLevel    *hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
@@ -63,7 +63,7 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 	}
 	c.GenesisHash = *dec.GenesisHash
 	if dec.DataDir == nil {
-		return errors.New("missing required field 'dataDir' for Config")
+		return errors.New("missing required field 'serverDataDir' for Config")
 	}
 	c.DataDir = *dec.DataDir
 	if dec.DbUri == nil {
