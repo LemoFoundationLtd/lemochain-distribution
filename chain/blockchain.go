@@ -2,7 +2,6 @@ package chain
 
 import (
 	"fmt"
-	coreChain "github.com/LemoFoundationLtd/lemochain-core/chain"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
@@ -155,49 +154,63 @@ func (bc *BlockChain) updateDeputyNodes(block *types.Block) {
 	}
 }
 
-// InsertChain insert block of non-self to chain
 func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err error) {
-	bc.mux.Lock()
-	defer bc.mux.Unlock()
-
-	hash := block.Hash()
-	if has, _ := bc.db.IsExistByHash(hash); has {
-		return nil
-	}
-	if block.Height() > 0 {
-		// process changelog
-		if err := bc.am.RebuildAll(block); err != nil {
-			log.Errorf("rebuild account manager failed: %v", err)
-			return err
-		}
-		if err := bc.am.Finalise(); err != nil {
-			panic("init genesis error01")
-		}
-	} else {
-		bc.initGenesis(block)
-	}
-
-	if err = bc.db.SetBlock(hash, block); err != nil {
-		log.Errorf("can't insert block to cache. height:%d hash:%s", block.Height(), hash.Prefix())
-		return coreChain.ErrSaveBlock
-	}
-	log.Infof("Insert block to chain. height: %d. hash: %s. time: %d. parent: %s", block.Height(), block.Hash().Prefix(), block.Time(), block.ParentHash().Prefix())
-
-	if err := bc.am.Save(hash); err != nil {
-		log.Errorf("save account manager failed: %v", err)
-		return err
-	}
-	if err = bc.db.SetStableBlock(hash); err != nil {
-		log.Errorf("can't SetStableBlock. height:%d hash:%s", block.Height(), hash.Prefix())
-		return coreChain.ErrSetStableBlockToDB
-	}
-
-	// update deputy nodes
-	bc.updateDeputyNodes(block)
-	bc.currentBlock.Store(block)
-	bc.stableBlock.Store(block)
+	// store := store.NewMySqlDB("", "")
+	// reBuildEngine := NewReBuildEngine(nil, block)
+	// defer reBuildEngine.Close()
+	//
+	// err := reBuildEngine.ReBuild()
+	// if err != nil {
+	// 	// repeat
+	// }else{
+	// 	return nil
+	// }
 	return nil
 }
+
+// InsertChain insert block of non-self to chain
+// func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err error) {
+// 	bc.mux.Lock()
+// 	defer bc.mux.Unlock()
+//
+// 	hash := block.Hash()
+// 	if has, _ := bc.db.IsExistByHash(hash); has {
+// 		return nil
+// 	}
+// 	if block.Height() > 0 {
+// 		// process changelog
+// 		if err := bc.am.RebuildAll(block); err != nil {
+// 			log.Errorf("rebuild account manager failed: %v", err)
+// 			return err
+// 		}
+// 		if err := bc.am.Finalise(); err != nil {
+// 			panic("init genesis error01")
+// 		}
+// 	} else {
+// 		bc.initGenesis(block)
+// 	}
+//
+// 	if err = bc.db.SetBlock(hash, block); err != nil {
+// 		log.Errorf("can't insert block to cache. height:%d hash:%s", block.Height(), hash.Prefix())
+// 		return coreChain.ErrSaveBlock
+// 	}
+// 	log.Infof("Insert block to chain. height: %d. hash: %s. time: %d. parent: %s", block.Height(), block.Hash().Prefix(), block.Time(), block.ParentHash().Prefix())
+//
+// 	if err := bc.am.Save(hash); err != nil {
+// 		log.Errorf("save account manager failed: %v", err)
+// 		return err
+// 	}
+// 	if err = bc.db.SetStableBlock(hash); err != nil {
+// 		log.Errorf("can't SetStableBlock. height:%d hash:%s", block.Height(), hash.Prefix())
+// 		return coreChain.ErrSetStableBlockToDB
+// 	}
+//
+// 	// update deputy nodes
+// 	bc.updateDeputyNodes(block)
+// 	bc.currentBlock.Store(block)
+// 	bc.stableBlock.Store(block)
+// 	return nil
+// }
 
 func (bc *BlockChain) initGenesis(b *types.Block) {
 	bc.am = account.NewManager(common.Hash{}, bc.db)
