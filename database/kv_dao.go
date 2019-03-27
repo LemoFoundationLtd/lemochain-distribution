@@ -62,6 +62,11 @@ func NewKvDao(engine *sql.DB) (*KvDao){
 }
 
 func (dao *KvDao) Get(key []byte) ([]byte, error) {
+	if len(key) <= 0 {
+		log.Errorf("get k/v. key is nil.")
+		return nil, ErrArgInvalid
+	}
+
 	row := dao.engine.QueryRow("SELECT lm_val FROM t_kv WHERE lm_key = ?", common.ToHex(key))
 	var val []byte
 	err := row.Scan(&val)
@@ -77,6 +82,11 @@ func (dao *KvDao) Get(key []byte) ([]byte, error) {
 }
 
 func (dao *KvDao) Set(key []byte, val []byte) (error) {
+	if len(key) <= 0 {
+		log.Errorf("set k/v. key is nil.")
+		return ErrArgInvalid
+	}
+
 	result, err := dao.engine.Exec("REPLACE INTO t_kv(lm_key, lm_val) VALUES (?,?)", common.ToHex(key), val)
 	if err != nil {
 		return err

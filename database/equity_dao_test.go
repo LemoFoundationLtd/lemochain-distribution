@@ -65,3 +65,112 @@ func TestEquityDao_Get(t *testing.T) {
 	assert.Equal(t, equities[0].Equity, result.Equity)
 	assert.Equal(t, equities[0].AssetId, result.AssetId)
 }
+
+func TestEquityDao_GetPage(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	equityDao := NewEquityDao(db.engine)
+
+	equities := NewAssetEquity20()
+	for index := 0; index < 10; index++{
+		equityDao.Set(common.HexToAddress("0x01"), equities[index])
+	}
+
+	for index := 10; index < 20; index++{
+		equityDao.Set(common.HexToAddress("0x02"), equities[index])
+	}
+
+	result, err := equityDao.GetPage(common.HexToAddress("0x01"), 0, 5)
+	assert.NoError(t, err)
+	assert.Equal(t, 5, len(result))
+
+	result, err = equityDao.GetPage(common.HexToAddress("0x01"), 10, 5)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(result))
+}
+
+func TestEquityDao_GetPageWithTotal(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	equityDao := NewEquityDao(db.engine)
+
+	equities := NewAssetEquity20()
+	for index := 0; index < 10; index++{
+		equityDao.Set(common.HexToAddress("0x01"), equities[index])
+	}
+
+	for index := 10; index < 20; index++{
+		equityDao.Set(common.HexToAddress("0x02"), equities[index])
+	}
+
+	result, total, err := equityDao.GetPageWithTotal(common.HexToAddress("0x01"), 0, 5)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, total)
+	assert.Equal(t, 5, len(result))
+
+	result, total, err = equityDao.GetPageWithTotal(common.HexToAddress("0x01"), 10, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, total)
+	assert.Equal(t, 0, len(result))
+}
+
+func TestEquityDao_NotExist(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	equityDao := NewEquityDao(db.engine)
+
+	equity, err := equityDao.Get(common.HexToAddress("0xab"), common.HexToHash("0x01"))
+	assert.Equal(t, err, ErrNotExist)
+	assert.Nil(t, equity)
+}
+
+func TestEquityDao_ArgInvaild(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	equityDao := NewEquityDao(db.engine)
+
+	err := equityDao.Set(common.Address{}, new(types.AssetEquity))
+	assert.Equal(t, err, ErrArgInvalid)
+
+	err = equityDao.Set(common.HexToAddress("0x01"), nil)
+	assert.Equal(t, err, ErrArgInvalid)
+
+	result1, err := equityDao.Get(common.Address{}, common.HexToHash("0x01"))
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Nil(t, result1)
+
+	result1, err = equityDao.Get(common.HexToAddress("0x01"), common.Hash{})
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Nil(t, result1)
+
+	result2, err := equityDao.GetPage(common.Address{}, 0, 1)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Nil(t, result2)
+
+	result2, err = equityDao.GetPage(common.HexToAddress("0x01"), -1, 1)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Nil(t, result2)
+
+	result2, err = equityDao.GetPage(common.HexToAddress("0x01"), 0, 0)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Nil(t, result2)
+
+	result3, total, err := equityDao.GetPageWithTotal(common.Address{}, 0, 1)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Equal(t, -1, total)
+	assert.Nil(t, result3)
+
+	result3, total, err = equityDao.GetPageWithTotal(common.HexToAddress("0x01"), -1, 1)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Equal(t, -1, total)
+	assert.Nil(t, result3)
+
+	result3, total, err = equityDao.GetPageWithTotal(common.HexToAddress("0x01"), 0, 0)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Equal(t, -1, total)
+	assert.Nil(t, result3)
+}

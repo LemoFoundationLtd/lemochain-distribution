@@ -41,6 +41,7 @@ func (dao *EquityDao) Get(addr common.Address, id common.Hash) (*types.AssetEqui
 		log.Errorf("get asset equity.addr is common.address{} or id is common.hash{}")
 		return nil, ErrArgInvalid
 	}
+
 	equity, _, err := dao.query(addr, id)
 	if err != nil {
 		return nil, err
@@ -55,34 +56,49 @@ func (dao *EquityDao) Get(addr common.Address, id common.Hash) (*types.AssetEqui
 }
 
 func (dao *EquityDao) GetPage(addr common.Address, start, stop int) ([]*types.AssetEquity, error) {
-	sql := "SELECT code, id, equity, utc_st WHERE addr = ? ORDER BY utc_st LIMIT ?, ?"
+	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
+		log.Errorf("get equity by page.addr is common.address{} or start < 0 or stop <= 0")
+		return nil, ErrArgInvalid
+	}
+
+	sql := "SELECT code, id, equity, utc_st FROM t_equity WHERE addr = ? ORDER BY utc_st LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sql)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr, start, stop)
+	rows, err := stmt.Query(addr.Hex(), start, stop)
 	if err != nil {
 		return nil, err
 	}
 
 	result := make([]*types.AssetEquity, 0)
 	for rows.Next() {
-		var assetEquity types.AssetEquity
+		var code string
+		var id string
 		var equity int64
-		err := rows.Scan(&assetEquity.AssetCode, &assetEquity.AssetId, &equity)
+		var utcSt int64
+		err := rows.Scan(&code, &id, &equity, &utcSt)
 		if err != nil {
 			return nil, err
 		}
 
-		assetEquity.Equity = new(big.Int).SetInt64(equity)
-		result = append(result, &assetEquity)
+		result = append(result, &types.AssetEquity{
+			AssetCode:common.HexToHash(code),
+			AssetId:common.HexToHash(id),
+			Equity:new(big.Int).SetInt64(equity),
+		})
 	}
 
 	return result, nil
 }
 
 func (dao *EquityDao) GetPageWithTotal(addr common.Address, start, stop int) ([]*types.AssetEquity, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
+		log.Errorf("get equity by page with total.addr is common.address{} or start < 0 or stop <= 0")
+		return nil, -1, ErrArgInvalid
+	}
+
 	sql := "SELECT count(*) as cnt FROM t_equity WHERE addr = ?"
 	row := dao.engine.QueryRow(sql, addr.Hex())
 	var cnt int
@@ -102,7 +118,7 @@ func (dao *EquityDao) GetPageWithTotal(addr common.Address, start, stop int) ([]
 func (dao *EquityDao) query(addr common.Address, id common.Hash) (*types.AssetEquity, int, error) {
 	sql := "SELECT code, equity, version FROM t_equity WHERE id = ? AND addr = ?"
 	row := dao.engine.QueryRow(sql, id.Hex(), addr.Hex())
-	var code []byte
+	var code string
 	var equity int64
 	var version int
 	err := row.Scan(&code, &equity, &version)
@@ -115,7 +131,7 @@ func (dao *EquityDao) query(addr common.Address, id common.Hash) (*types.AssetEq
 	}
 
 	return &types.AssetEquity{
-		AssetCode: common.BytesToHash(code),
+		AssetCode: common.HexToHash(code),
 		AssetId:id,
 		Equity:new(big.Int).SetInt64(equity),
 	}, version, nil

@@ -21,3 +21,28 @@ func TestKvDao_Get(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, val, result)
 }
+
+func TestKvDao_NotExist(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	kvDao := NewKvDao(db.engine)
+
+	result, err := kvDao.Get([]byte("lemo"))
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+}
+
+func TestKvDao_ArgInvalid(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	kvDao := NewKvDao(db.engine)
+
+	result, err := kvDao.Get(nil)
+	assert.Equal(t, err, ErrArgInvalid)
+	assert.Nil(t, result)
+
+	err = kvDao.Set(nil, []byte("lemo"))
+	assert.Equal(t, err, ErrArgInvalid)
+}
