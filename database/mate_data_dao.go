@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
-	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
 	"time"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
@@ -11,18 +10,18 @@ import (
 )
 
 type MateData struct {
-	Id   common.Hash
-	Code common.Hash
-	Addr common.Address
-	Profile *types.Profile
+	Id      common.Hash
+	Code    common.Hash
+	Addr    common.Address
+	Profile string
 }
 
-type MateDataDao struct{
+type MateDataDao struct {
 	engine *sql.DB
 }
 
-func NewMateDataDao(engine *sql.DB) (*MateDataDao){
-	return &MateDataDao{engine:engine}
+func NewMateDataDao(db DBEngine) (*MateDataDao) {
+	return &MateDataDao{engine: db.GetDB()}
 }
 
 func (dao *MateDataDao) Set(mateData *MateData) (error) {
@@ -31,19 +30,14 @@ func (dao *MateDataDao) Set(mateData *MateData) (error) {
 		return ErrArgInvalid
 	}
 
-	if mateData.Profile == nil {
-		profile := make(types.Profile)
-		mateData.Profile = &profile
-	}
-
 	result, version, err := dao.query(mateData.Id)
 	if err != nil {
 		return err
 	}
 
-	if result == nil{
+	if result == nil {
 		return dao.insert(mateData)
-	}else{
+	} else {
 		return dao.update(mateData, version)
 	}
 }
@@ -55,25 +49,25 @@ func (dao *MateDataDao) Get(id common.Hash) (*MateData, error) {
 	}
 
 	data, _, err := dao.query(id)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
-	if data == nil{
+	if data == nil {
 		log.Errorf("get mate data.id is not exist.")
 		return nil, ErrNotExist
-	}else{
+	} else {
 		return data, nil
 	}
 }
 
-func (dao *MateDataDao) decodeProfile(val []byte)(*types.Profile, error){
-	profile := make(types.Profile)
+func (dao *MateDataDao) decodeProfile(val []byte) (string, error) {
+	var profile string
 	err := rlp.DecodeBytes(val, &profile)
-	if err != nil{
-		return nil, err
-	}else{
-		return &profile, nil
+	if err != nil {
+		return "", err
+	} else {
+		return profile, nil
 	}
 }
 
@@ -91,14 +85,14 @@ func (dao *MateDataDao) buildMateDataBatch(rows *sql.Rows) ([]*MateData, error) 
 		}
 
 		profile, err := dao.decodeProfile(val)
-		if err != nil{
+		if err != nil {
 			return nil, err
-		}else{
+		} else {
 			mateData := &MateData{
-				Code:common.HexToHash(code),
-				Id:common.HexToHash(id),
-				Addr:common.HexToAddress(addr),
-				Profile:profile,
+				Code:    common.HexToHash(code),
+				Id:      common.HexToHash(id),
+				Addr:    common.HexToAddress(addr),
+				Profile: profile,
 			}
 			result = append(result, mateData)
 		}
@@ -106,7 +100,7 @@ func (dao *MateDataDao) buildMateDataBatch(rows *sql.Rows) ([]*MateData, error) 
 	return result, nil
 }
 
-func (dao *MateDataDao) GetPage(addr common.Address, start, stop int) ([]*MateData, error ){
+func (dao *MateDataDao) GetPage(addr common.Address, start, stop int) ([]*MateData, error) {
 	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
 		log.Errorf("get mate by page.addr is common.address{} or start < 0 or stop <= 0")
 		return nil, ErrArgInvalid
@@ -141,14 +135,14 @@ func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, stop int) (
 	}
 
 	data, err := dao.GetPage(addr, start, stop)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return data, cnt, nil
 	}
 }
 
-func (dao *MateDataDao) GetPageByCode(code common.Hash, start, stop int)([]*MateData, error) {
+func (dao *MateDataDao) GetPageByCode(code common.Hash, start, stop int) ([]*MateData, error) {
 	if code == (common.Hash{}) || (start < 0) || (stop <= 0) {
 		log.Errorf("get mate by code.addr is common.address{} or start < 0 or stop <= 0")
 		return nil, ErrArgInvalid
@@ -183,9 +177,9 @@ func (dao *MateDataDao) GetPageByCodeWithTotal(code common.Hash, start, stop int
 	}
 
 	data, err := dao.GetPageByCode(code, start, stop)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return data, cnt, nil
 	}
 }
@@ -207,17 +201,17 @@ func (dao *MateDataDao) query(id common.Hash) (*MateData, int, error) {
 	}
 
 	result := &MateData{
-		Id:id,
-		Code:common.HexToHash(code),
-		Addr:common.HexToAddress(addr),
+		Id:   id,
+		Code: common.HexToHash(code),
+		Addr: common.HexToAddress(addr),
 	}
 
-	profile := make(types.Profile)
+	var profile string
 	err = rlp.DecodeBytes(val, &profile)
 	if err != nil {
 		return nil, - 1, err
-	}else{
-		result.Profile = &profile
+	} else {
+		result.Profile = profile
 		return result, version, nil
 	}
 }
@@ -225,51 +219,49 @@ func (dao *MateDataDao) query(id common.Hash) (*MateData, int, error) {
 func (dao *MateDataDao) insert(mateData *MateData) (error) {
 	sql := "INSERT INTO t_mate_data(code, id, addr, attrs, version, utc_st)VALUES(?,?,?,?,?,?)"
 	val, err := rlp.EncodeToBytes(mateData.Profile)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	result, err := dao.engine.Exec(sql, mateData.Code.Hex(), mateData.Id.Hex(), mateData.Addr.Hex(), val, 1, time.Now().UnixNano() / 1000000)
+	result, err := dao.engine.Exec(sql, mateData.Code.Hex(), mateData.Id.Hex(), mateData.Addr.Hex(), val, 1, time.Now().UnixNano()/1000000)
 	if err != nil {
 		return err
 	}
 
 	effected, err := result.RowsAffected()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if effected != 1{
+	if effected != 1 {
 		log.Errorf("update mate data.affected = " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
-	}else{
+	} else {
 		return nil
 	}
 }
 
 func (dao *MateDataDao) update(mateData *MateData, version int) (error) {
 	val, err := rlp.EncodeToBytes(mateData.Profile)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	sql := "UPDATE t_mate_data SET attrs = ?, version = version + 1 WHERE id = ? AND code = ? AND addr = ? AND version = ?"
-	result, err := dao.engine.Exec(sql,  val, mateData.Id.Hex(), mateData.Code.Hex(), mateData.Addr.Hex(), version)
+	result, err := dao.engine.Exec(sql, val, mateData.Id.Hex(), mateData.Code.Hex(), mateData.Addr.Hex(), version)
 	if err != nil {
 		return err
 	}
 
 	effected, err := result.RowsAffected()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if effected != 1{
+	if effected != 1 {
 		log.Errorf("update mate data.affected = " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
-	}else{
+	} else {
 		return nil
 	}
 }
-
-

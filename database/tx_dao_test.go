@@ -37,7 +37,7 @@ func TestTxDao_Get(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	txDao := NewTxDao(db.engine)
+	txDao := NewTxDao(db)
 
 	tx10 := NewTx10()
 	err := txDao.Set(tx10[0])
@@ -59,7 +59,7 @@ func TestTxDao_GetPage(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	txDao := NewTxDao(db.engine)
+	txDao := NewTxDao(db)
 
 	tx10 := NewTx10()
 	for index := 0; index < len(tx10); index++{
@@ -109,7 +109,7 @@ func TestTxDao_GetPateWithTotal(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	txDao := NewTxDao(db.engine)
+	txDao := NewTxDao(db)
 
 	tx10 := NewTx10()
 	for index := 0; index < len(tx10); index++{
@@ -167,7 +167,7 @@ func TestTxDao_NotExist(t *testing.T){
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	txDao := NewTxDao(db.engine)
+	txDao := NewTxDao(db)
 
 	result, err := txDao.Get(common.HexToHash("0x01"))
 	assert.Equal(t, ErrNotExist, err)
@@ -178,7 +178,7 @@ func TestTxDao_ArgInvalid(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	txDao := NewTxDao(db.engine)
+	txDao := NewTxDao(db)
 
 	result, err := txDao.Get(common.Hash{})
 	assert.Equal(t, ErrArgInvalid, err)

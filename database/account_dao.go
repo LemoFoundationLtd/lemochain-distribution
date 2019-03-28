@@ -12,8 +12,12 @@ type AccountDao struct{
 	engine *sql.DB
 }
 
-func NewAccountDao(engine *sql.DB) (*AccountDao) {
-	return &AccountDao{engine:engine}
+func NewAccountDao(db DBEngine) (*AccountDao) {
+	return &AccountDao{engine:db.GetDB()}
+}
+
+func (dao *AccountDao) GetDB() (*sql.DB) {
+	return dao.engine
 }
 
 func (dao *AccountDao) Get(addr common.Address) (*types.AccountData, error) {
@@ -22,7 +26,7 @@ func (dao *AccountDao) Get(addr common.Address) (*types.AccountData, error) {
 		return nil, ErrArgInvalid
 	}
 
-	kvDao := NewKvDao(dao.engine)
+	kvDao := NewKvDao(dao)
 	val, err := kvDao.Get(GetAddressKey(addr))
 	if err != nil {
 		log.Errorf("get account.addr: " + addr.Hex() + ".err: " + err.Error())
@@ -54,6 +58,6 @@ func (dao *AccountDao) Set(addr common.Address, account *types.AccountData) (err
 		return err
 	}
 
-	kvDao := NewKvDao(dao.engine)
+	kvDao := NewKvDao(dao)
 	return kvDao.Set(GetAddressKey(addr), val)
 }

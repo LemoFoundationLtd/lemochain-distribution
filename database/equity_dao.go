@@ -14,8 +14,8 @@ type EquityDao struct{
 	engine *sql.DB
 }
 
-func NewEquityDao(engine *sql.DB) (*EquityDao) {
-	return &EquityDao{engine:engine}
+func NewEquityDao(db DBEngine) (*EquityDao) {
+	return &EquityDao{engine:db.GetDB()}
 }
 
 func (dao *EquityDao) Set(addr common.Address, assetEquity *types.AssetEquity) (error){

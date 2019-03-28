@@ -3,12 +3,11 @@ package chain
 import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
-	"github.com/LemoFoundationLtd/lemochain-server/database"
-	"github.com/meitu/go-ethereum/rlp"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 )
 
 type ReBuildEngine struct {
-	Store        database.DBStore
+	Store        database.DBEngine
 
 	Block        *types.Block
 	LogsCache    []*types.ChangeLog
@@ -21,31 +20,7 @@ type ReBuildEngine struct {
 	StorageCache map[common.Hash][]byte
 }
 
-func (engine *ReBuildEngine) GetAccount(address common.Address) (types.AccountAccessor) {
-	reBuildAccount, ok := engine.ReBuildAccountsCache[address]
-	if ok {
-		return reBuildAccount
-	}
-
-	key := address.Bytes()
-	val, err := engine.Store.Get(key)
-	if err != nil {
-		panic("get account from database err: " + err.Error())
-	}
-
-	var data types.AccountData
-	err = rlp.DecodeBytes(val, &data)
-	if err != nil {
-		panic("rlp []byte to account err: " + err.Error())
-	}
-
-
-	reBuildAccount = NewReBuildAccount(engine.Store, &data)
-	engine.ReBuildAccountsCache[address] = reBuildAccount
-	return reBuildAccount
-}
-
-func NewReBuildEngine(store database.DBStore, block *types.Block) (*ReBuildEngine) {
+func NewReBuildEngine(store database.DBEngine, block *types.Block) (*ReBuildEngine) {
 	return &ReBuildEngine{
 		Store:	store,
 		Block: 	block,
@@ -53,8 +28,25 @@ func NewReBuildEngine(store database.DBStore, block *types.Block) (*ReBuildEngin
 	}
 }
 
+func (engine *ReBuildEngine) GetAccount(address common.Address) (types.AccountAccessor) {
+	reBuildAccount, ok := engine.ReBuildAccountsCache[address]
+	if ok {
+		return reBuildAccount
+	}
+
+	accountDao := database.NewAccountDao(engine.Store)
+	account, err := accountDao.Get(address)
+	if err != nil {
+		panic("get account from database err: " + err.Error())
+	}
+
+	reBuildAccount = NewReBuildAccount(engine.Store, account)
+	engine.ReBuildAccountsCache[address] = reBuildAccount
+	return reBuildAccount
+}
+
 func (engine *ReBuildEngine) Close() {
-	engine.Store.Close()
+	//
 }
 
 func (engine *ReBuildEngine) ReBuild() (error) {

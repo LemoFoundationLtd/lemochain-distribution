@@ -13,8 +13,12 @@ type BlockDao struct{
 	engine *sql.DB
 }
 
-func NewBlockDao(engine *sql.DB) (*BlockDao){
-	return &BlockDao{engine:engine}
+func NewBlockDao(db DBEngine) (*BlockDao){
+	return &BlockDao{engine:db.GetDB()}
+}
+
+func (dao *BlockDao) GetDB() (*sql.DB) {
+	return dao.engine
 }
 
 func (dao *BlockDao) SetBlock(hash common.Hash, block *types.Block) (error) {
@@ -27,7 +31,7 @@ func (dao *BlockDao) SetBlock(hash common.Hash, block *types.Block) (error) {
 	if err != nil{
 		return err
 	}else{
-		kvDao := NewKvDao(dao.engine)
+		kvDao := NewKvDao(dao)
 		err = kvDao.Set(GetCanonicalKey(block.Height()), hash.Bytes())
 		if err != nil{
 			return err
@@ -43,7 +47,7 @@ func (dao *BlockDao) GetBlock(hash common.Hash) (*types.Block, error) {
 		return nil, ErrArgInvalid
 	}
 
-	kvDao := NewKvDao(dao.engine)
+	kvDao := NewKvDao(dao)
 	val, err := kvDao.Get(GetBlockHashKey(hash))
 	if err != nil {
 		return nil, err
@@ -63,8 +67,21 @@ func (dao *BlockDao) GetBlock(hash common.Hash) (*types.Block, error) {
 	}
 }
 
+func (dao *BlockDao) IsExist(hash common.Hash) (bool, error){
+	_, err := dao.GetBlock(hash)
+	if err == ErrNotExist{
+		return false, nil
+	}
+
+	if err != nil {
+		return false, err
+	}else{
+		return true, nil
+	}
+}
+
 func (dao *BlockDao) GetBlockByHeight(height uint32) (*types.Block, error) {
-	kvDao := NewKvDao(dao.engine)
+	kvDao := NewKvDao(dao)
 	val, err := kvDao.Get(GetCanonicalKey(height))
 	if err != nil {
 		return nil, err

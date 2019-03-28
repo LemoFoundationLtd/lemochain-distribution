@@ -19,7 +19,7 @@ func NewMateData(id common.Hash, code common.Hash, addr common.Address, isNil bo
 		profile["key1"] = "val1"
 		profile["key2"] = "val2"
 		profile["key3"] = "val3"
-		result.Profile = &profile
+		result.Profile = "profile"
 	}
 
 	return result
@@ -58,7 +58,7 @@ func TestMateDataDao_Get(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	ids := NewMateDataBatch20()
 	data := NewMateDataBatch1(ids[0], false)
@@ -94,7 +94,7 @@ func TestMateDataDao_GetPage(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	ids := NewMateDataBatch20()
 	for index := 0; index < len(ids); index++{
@@ -116,7 +116,7 @@ func TestMateDataDao_GetPageWithTotal(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	ids := NewMateDataBatch20()
 	for index := 0; index < len(ids); index++{
@@ -140,7 +140,7 @@ func TestMateDataDao_GetPageByCode(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	ids := NewMateDataBatch20()
 	for index := 0; index < len(ids); index++{
@@ -162,7 +162,7 @@ func TestMateDataDao_GetPageByCodeWithTotal(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	ids := NewMateDataBatch20()
 	for index := 0; index < len(ids); index++{
@@ -186,7 +186,7 @@ func TestMateDataDao_NotExist(t *testing.T){
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	result, err := mateDataDao.Get(common.HexToHash("0x01"))
 	assert.Equal(t, err, ErrNotExist)
@@ -197,7 +197,7 @@ func TestMateDataDao_ArgInvalid(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	mateDataDao := NewMateDataDao(db.engine)
+	mateDataDao := NewMateDataDao(db)
 
 	result1, err := mateDataDao.Get(common.Hash{})
 	assert.Equal(t, err, ErrArgInvalid)

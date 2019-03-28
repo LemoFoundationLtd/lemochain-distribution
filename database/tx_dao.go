@@ -21,8 +21,8 @@ type TxDao struct {
 	engine *sql.DB
 }
 
-func NewTxDao(engine *sql.DB) (*TxDao) {
-	return &TxDao{engine:engine}
+func NewTxDao(db DBEngine) (*TxDao) {
+	return &TxDao{engine:db.GetDB()}
 }
 
 func (dao *TxDao) Set(tx *Tx) (error) {

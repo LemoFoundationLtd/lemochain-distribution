@@ -11,7 +11,7 @@ func TestContextDao_ContextSet(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	contextDao := NewContextDao(db.engine)
+	contextDao := NewContextDao(db)
 
 	err := contextDao.ContextSet(ContextFlgCurrentBlock, common.HexToHash("0x123456").Bytes(), common.HexToHash("0xabcdef").Bytes())
 	assert.NoError(t, err)

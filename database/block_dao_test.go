@@ -12,7 +12,7 @@ func TestBlockDao_GetBlock(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	blockDao := NewBlockDao(db.engine)
+	blockDao := NewBlockDao(db)
 
 	hash := common.HexToHash("0xabc")
 	block := new(types.Block)
@@ -35,7 +35,7 @@ func TestBlockDao_GetNotExist(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	blockDao := NewBlockDao(db.engine)
+	blockDao := NewBlockDao(db)
 	hash := common.HexToHash("0xabc")
 	result, err := blockDao.GetBlock(hash)
 	assert.Equal(t, err, ErrNotExist)
@@ -51,7 +51,7 @@ func TestBlockDao_GetArgInvalid(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	blockDao := NewBlockDao(db.engine)
+	blockDao := NewBlockDao(db)
 	err := blockDao.SetBlock(common.Hash{}, new(types.Block))
 	assert.Equal(t, err, ErrArgInvalid)
 

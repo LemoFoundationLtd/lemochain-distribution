@@ -57,8 +57,8 @@ type KvDao struct{
 	engine *sql.DB
 }
 
-func NewKvDao(engine *sql.DB) (*KvDao){
-	return &KvDao{engine:engine}
+func NewKvDao(db DBEngine) (*KvDao){
+	return &KvDao{engine:db.GetDB()}
 }
 
 func (dao *KvDao) Get(key []byte) ([]byte, error) {

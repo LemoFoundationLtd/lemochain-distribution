@@ -12,7 +12,7 @@ func TestAccountDao_Get(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	accountDao := NewAccountDao(db.engine)
+	accountDao := NewAccountDao(db)
 	addr := common.HexToAddress("0xabc1123")
 	account := &types.AccountData{Address:addr}
 	err := accountDao.Set(addr, account)
@@ -28,7 +28,7 @@ func TestAccountDao_GetNotExist(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	accountDao := NewAccountDao(db.engine)
+	accountDao := NewAccountDao(db)
 	addr := common.HexToAddress("0x01")
 
 	result, err := accountDao.Get(addr)
@@ -41,7 +41,7 @@ func TestAccountDao_GetArgInvalid(t *testing.T) {
 	defer db.Close()
 	defer db.Clear()
 
-	accountDao := NewAccountDao(db.engine)
+	accountDao := NewAccountDao(db)
 	result, err := accountDao.Get(common.Address{})
 	assert.Equal(t, err, ErrArgInvalid)
 	assert.Nil(t, result)

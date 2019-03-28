@@ -36,7 +36,7 @@ func TestAssetDao_Set(t *testing.T) {
 
 	assetes := NewAsset10()
 
-	assetDao := NewAssetDao(db.engine)
+	assetDao := NewAssetDao(db)
 	err := assetDao.Set(assetes[0])		// insert
 	assert.NoError(t, err)
 
@@ -55,7 +55,7 @@ func TestAssetDao_GetPage(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	assetDao := NewAssetDao(db.engine)
+	assetDao := NewAssetDao(db)
 
 	assetes := NewAsset10()
 	for index := 0; index < len(assetes); index++{
@@ -80,7 +80,7 @@ func TestAssetDao_GetPageWithTotal(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	assetDao := NewAssetDao(db.engine)
+	assetDao := NewAssetDao(db)
 
 	assetes := NewAsset10()
 	for index := 0; index < len(assetes); index++ {
@@ -113,7 +113,7 @@ func TestAssetDao_GetNotExist(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	assetDao := NewAssetDao(db.engine)
+	assetDao := NewAssetDao(db)
 
 	assetes := NewAsset10()
 	for index := 0; index < len(assetes); index++{
@@ -137,7 +137,7 @@ func TestAssetDao_GetArgInvalid(t *testing.T){
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	assetDao := NewAssetDao(db.engine)
+	assetDao := NewAssetDao(db)
 
 	err := assetDao.Set(nil)
 	assert.Equal(t, err, ErrArgInvalid)

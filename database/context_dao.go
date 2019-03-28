@@ -21,8 +21,8 @@ type ContextDao struct{
 	engine *sql.DB
 }
 
-func NewContextDao(engine *sql.DB) (*ContextDao) {
-	return &ContextDao{engine:engine}
+func NewContextDao(db DBEngine) (*ContextDao) {
+	return &ContextDao{engine:db.GetDB()}
 }
 
 func (dao *ContextDao) ContextSet(flg int, key []byte, val []byte) (error) {

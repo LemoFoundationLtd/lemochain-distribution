@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"sync"
 	"sync/atomic"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 )
 
 type BlockChain struct {
@@ -154,18 +155,30 @@ func (bc *BlockChain) updateDeputyNodes(block *types.Block) {
 	}
 }
 
-func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err error) {
-	// store := store.NewMySqlDB("", "")
-	// reBuildEngine := NewReBuildEngine(nil, block)
-	// defer reBuildEngine.Close()
-	//
-	// err := reBuildEngine.ReBuild()
-	// if err != nil {
-	// 	// repeat
-	// }else{
-	// 	return nil
-	// }
-	return nil
+func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (error) {
+	bc.mux.Lock()
+	defer bc.mux.Unlock()
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	hash := block.Hash()
+	blockDao := database.NewBlockDao(dbEngine)
+	has, err := blockDao.IsExist(hash)
+	if err != nil || has {
+		return err
+	}
+
+	reBuildEngine := NewReBuildEngine(dbEngine, block)
+	err = reBuildEngine.ReBuild()
+	if err != nil{
+		return err
+	}else{
+		bc.updateDeputyNodes(block)
+		bc.currentBlock.Store(block)
+		bc.stableBlock.Store(block)
+		return nil
+	}
 }
 
 // InsertChain insert block of non-self to chain

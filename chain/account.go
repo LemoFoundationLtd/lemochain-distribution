@@ -4,14 +4,13 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"math/big"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
-	"github.com/LemoFoundationLtd/lemochain-server/database"
-	"github.com/meitu/go-ethereum/rlp"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 )
 
 type ReBuildAccount struct {
 	types.AccountData
 
-	Store 		database.DBStore
+	Store 		database.DBEngine
 	Code     	[]byte
 
 	AssetCodes    map[common.Hash]*types.Asset
@@ -24,7 +23,7 @@ type ReBuildAccount struct {
 	suicided      bool
 }
 
-func NewReBuildAccount(store database.DBStore, data *types.AccountData) (*ReBuildAccount) {
+func NewReBuildAccount(store database.DBEngine, data *types.AccountData) (*ReBuildAccount) {
 	reBuildAccount := &ReBuildAccount{Store:store, AccountData:*data}
 
 	reBuildAccount.NextVersion = make(map[types.ChangeLogType]uint32)
@@ -133,7 +132,8 @@ func (account *ReBuildAccount) SetCodeHash(codeHash common.Hash) {
 
 func (account *ReBuildAccount) GetCode() (types.Code, error) {
 	if account.Code == nil {
-		val, err := account.Store.Get(account.CodeHash.Bytes())
+		kvDao := database.NewKvDao(account.Store)
+		val, err := kvDao.Get(account.CodeHash.Bytes())
 		if err != nil{
 			return nil, err
 		}else{
@@ -196,22 +196,8 @@ func (account *ReBuildAccount) SetStorageState(key common.Hash, value []byte) er
 }
 
 func (account *ReBuildAccount) GetAssetCodeFromDB(code common.Hash)(*types.Asset, error) {
-	val, err := account.Store.Get(code.Bytes())
-	if err != nil{
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	var asset types.Asset
-	err = rlp.DecodeBytes(val, &asset)
-	if err != nil{
-		return nil, err
-	}else{
-		return &asset, nil
-	}
+	assetDao := database.NewAssetDao(account.Store)
+	return assetDao.Get(code)
 }
 
 func (account *ReBuildAccount) GetAssetCode(code common.Hash) (*types.Asset, error) {
@@ -330,36 +316,27 @@ func (account *ReBuildAccount) SetAssetCodeState(code common.Hash, key string, v
 	}
 }
 
-
-func (account *ReBuildAccount) GetAssetId(id common.Hash) (types.Profile, error) {
-	val, err := account.Store.Get(id.Bytes())
+func (account *ReBuildAccount) GetAssetId(id common.Hash) (string, error) {
+	mateDataDao := database.NewMateDataDao(account.Store)
+	val, err := mateDataDao.Get(id)
 	if err != nil{
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	var tmp types.Profile
-	err = rlp.DecodeBytes(val, &tmp)
-	if err != nil{
-		return nil, err
+		return "", err
 	}else{
-		return tmp, nil
+		return val.Profile, nil
 	}
 }
 
 func (account *ReBuildAccount) GetAssetIdState(id common.Hash) (string, error) {
 	assetId, ok := account.AssetIds[id]
 	if !ok {
-		val, err := account.Store.Get(id.Bytes())
+		mateDataDao := database.NewMateDataDao(account.Store)
+		mateData, err := mateDataDao.Get(id)
 		if err != nil {
 			return "", err
+		}else{
+			account.AssetIds[id] = mateData.Profile
+			return mateData.Profile, nil
 		}
-
-		account.AssetIds[id] = string(val)
-		return string(val), nil
 	}else{
 		return assetId, nil
 	}
@@ -371,22 +348,8 @@ func (account *ReBuildAccount) SetAssetIdState(id common.Hash, data string) erro
 }
 
 func (account *ReBuildAccount) GetEquity(id common.Hash) (*types.AssetEquity, error) {
-	val, err := account.Store.Get(id.Bytes())
-	if err != nil{
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	var tmp types.AssetEquity
-	err = rlp.DecodeBytes(val, &tmp)
-	if err != nil{
-		return nil, err
-	}else{
-		return &tmp, nil
-	}
+	equityDao := database.NewEquityDao(account.Store)
+	return equityDao.Get(account.Address, id)
 }
 
 func (account *ReBuildAccount) GetEquityState(id common.Hash) (*types.AssetEquity, error) {

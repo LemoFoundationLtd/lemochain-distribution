@@ -14,8 +14,8 @@ type AssetDao struct{
 	engine *sql.DB
 }
 
-func NewAssetDao(engine *sql.DB) (*AssetDao) {
-	return &AssetDao{engine:engine}
+func NewAssetDao(db DBEngine) (*AssetDao) {
+	return &AssetDao{engine:db.GetDB()}
 }
 
 func (dao *AssetDao) Set(asset *types.Asset) (error) {

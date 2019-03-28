@@ -48,7 +48,7 @@ func TestEquityDao_Get(t *testing.T) {
 
 	equities := NewAssetEquity20()
 
-	equityDao := NewEquityDao(db.engine)
+	equityDao := NewEquityDao(db)
 	err := equityDao.Set(common.HexToAddress("0x01"), equities[0])
 	assert.NoError(t, err)
 
@@ -70,7 +70,7 @@ func TestEquityDao_GetPage(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	equityDao := NewEquityDao(db.engine)
+	equityDao := NewEquityDao(db)
 
 	equities := NewAssetEquity20()
 	for index := 0; index < 10; index++{
@@ -94,7 +94,7 @@ func TestEquityDao_GetPageWithTotal(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	equityDao := NewEquityDao(db.engine)
+	equityDao := NewEquityDao(db)
 
 	equities := NewAssetEquity20()
 	for index := 0; index < 10; index++{
@@ -120,7 +120,7 @@ func TestEquityDao_NotExist(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	equityDao := NewEquityDao(db.engine)
+	equityDao := NewEquityDao(db)
 
 	equity, err := equityDao.Get(common.HexToAddress("0xab"), common.HexToHash("0x01"))
 	assert.Equal(t, err, ErrNotExist)
@@ -131,7 +131,7 @@ func TestEquityDao_ArgInvaild(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
-	equityDao := NewEquityDao(db.engine)
+	equityDao := NewEquityDao(db)
 
 	err := equityDao.Set(common.Address{}, new(types.AssetEquity))
 	assert.Equal(t, err, ErrArgInvalid)
