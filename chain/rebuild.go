@@ -23,6 +23,7 @@ type ReBuildEngine struct {
 func NewReBuildEngine(store database.DBEngine, block *types.Block) (*ReBuildEngine) {
 	return &ReBuildEngine{
 		Store:	store,
+		LogsCache:block.ChangeLogs,
 		Block: 	block,
 		ReBuildAccountsCache: make(map[common.Address]*ReBuildAccount),
 	}
@@ -37,8 +38,13 @@ func (engine *ReBuildEngine) GetAccount(address common.Address) (types.AccountAc
 	accountDao := database.NewAccountDao(engine.Store)
 	account, err := accountDao.Get(address)
 	if err != nil {
-		panic("get account from database err: " + err.Error())
+		if err == database.ErrNotExist{
+			account = database.NewAccountData(address)
+		}else{
+			panic("get account from database err: " + err.Error())
+		}
 	}
+
 
 	reBuildAccount = NewReBuildAccount(engine.Store, account)
 	engine.ReBuildAccountsCache[address] = reBuildAccount
@@ -50,13 +56,11 @@ func (engine *ReBuildEngine) Close() {
 }
 
 func (engine *ReBuildEngine) ReBuild() (error) {
-	if engine.LogsCache != nil {
-		return nil
-	}
-
-	for _, cl := range engine.LogsCache {
-		if err := cl.Redo(engine); err != nil {
-			return err
+	if len(engine.LogsCache) > 0 {
+		for _, cl := range engine.LogsCache {
+			if err := cl.Redo(engine); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -100,11 +104,17 @@ func (engine *ReBuildEngine) Save() (error) {
 		return err
 	}
 
-	return nil
+	return engine.saveCurrentBlock(engine.Block)
+}
+
+func (engine *ReBuildEngine) saveCurrentBlock(block *types.Block) (error) {
+	contextDao := database.NewContextDao(engine.Store)
+	return contextDao.SetCurrentBlock(block)
 }
 
 func (engine *ReBuildEngine) saveBlock(block *types.Block) (error) {
-	return nil
+	blockDao := database.NewBlockDao(engine.Store)
+	return blockDao.SetBlock(block.Hash(), block)
 }
 
 func (engine *ReBuildEngine) saveAccountBatch(reBuildAccounts map[common.Address]*ReBuildAccount) (error) {
@@ -120,7 +130,8 @@ func (engine *ReBuildEngine) saveAccountBatch(reBuildAccounts map[common.Address
 }
 
 func (engine *ReBuildEngine) saveAccount(account *types.AccountData) (error) {
-	return nil
+	accountDao := database.NewAccountDao(engine.Store)
+	return accountDao.Set(account.Address, account)
 }
 
 func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) (error) {
@@ -135,6 +146,8 @@ func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) (error) {
 }
 
 func (engine *ReBuildEngine) saveTx(tx *types.Transaction) (error) {
+	// txDao := database.NewTxDao(engine.Store)
+	// return txDao.Set(tx)
 	return nil
 }
 

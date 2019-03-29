@@ -54,7 +54,6 @@ func (dao *BlockDao) GetBlock(hash common.Hash) (*types.Block, error) {
 	}
 
 	if val == nil{
-		log.Errorf("get block by hash.is not exist.hash: " + hash.Hex())
 		return nil, ErrNotExist
 	}
 

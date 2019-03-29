@@ -31,6 +31,11 @@ func NewReBuildAccount(store database.DBEngine, data *types.AccountData) (*ReBui
 		reBuildAccount.NextVersion[k] = v.Version
 	}
 
+	reBuildAccount.AssetCodes = make(map[common.Hash]*types.Asset)
+	reBuildAccount.AssetIds = make(map[common.Hash]string)
+	reBuildAccount.AssetEquities = make(map[common.Hash]*types.AssetEquity)
+	reBuildAccount.Storage = make(map[common.Hash][]byte)
+	reBuildAccount.Events = make([]*types.Event, 0)
 	return reBuildAccount
 }
 
@@ -43,6 +48,10 @@ func (account *ReBuildAccount) GetAddress() common.Address {
 }
 
 func (account *ReBuildAccount) GetVersion(logType types.ChangeLogType) uint32 {
+	if account.NewestRecords == nil{
+		return 1
+	}
+
 	version, ok := account.NewestRecords[logType]
 	if !ok {
 		return 1

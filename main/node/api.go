@@ -177,23 +177,24 @@ func (c *PublicChainAPI) GetDeputyNodeList() []string {
 
 // GetCandidateTop30 get top 30 candidate node
 func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
-	latestStableBlock := c.chain.StableBlock()
-	stableBlockHash := latestStableBlock.Hash()
-	storeInfos := c.chain.Db().GetCandidatesTop(stableBlockHash)
-	candidateList := make([]*CandidateInfo, 0, 30)
-	for _, info := range storeInfos {
-		candidateInfo := &CandidateInfo{
-			Profile: make(map[string]string),
-		}
-		CandidateAddress := info.GetAddress()
-		CandidateAccount := c.chain.AccountManager().GetAccount(CandidateAddress)
-		profile := CandidateAccount.GetCandidate()
-		candidateInfo.Profile = profile
-		candidateInfo.CandidateAddress = CandidateAddress.String()
-		candidateInfo.Votes = info.GetTotal().String()
-		candidateList = append(candidateList, candidateInfo)
-	}
-	return candidateList
+	// latestStableBlock := c.chain.StableBlock()
+	// stableBlockHash := latestStableBlock.Hash()
+	// storeInfos := c.chain.Db().GetCandidatesTop(stableBlockHash)
+	// candidateList := make([]*CandidateInfo, 0, 30)
+	// for _, info := range storeInfos {
+	// 	candidateInfo := &CandidateInfo{
+	// 		Profile: make(map[string]string),
+	// 	}
+	// 	CandidateAddress := info.GetAddress()
+	// 	CandidateAccount := c.chain.AccountManager().GetAccount(CandidateAddress)
+	// 	profile := CandidateAccount.GetCandidate()
+	// 	candidateInfo.Profile = profile
+	// 	candidateInfo.CandidateAddress = CandidateAddress.String()
+	// 	candidateInfo.Votes = info.GetTotal().String()
+	// 	candidateList = append(candidateList, candidateInfo)
+	// }
+	// return candidateList
+	return nil
 }
 
 // GetBlockByNumber get block information by height

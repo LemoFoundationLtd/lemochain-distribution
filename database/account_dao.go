@@ -6,7 +6,30 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"math/big"
 )
+
+func NewAccountData(address common.Address) *types.AccountData {
+	account := &types.AccountData{Address: address}
+
+	if account.Balance == nil {
+		account.Balance = new(big.Int)
+	}
+
+	if account.NewestRecords == nil {
+		account.NewestRecords = make(map[types.ChangeLogType]types.VersionRecord)
+	}
+
+	if account.Candidate.Profile == nil {
+		account.Candidate.Profile = make(types.Profile)
+	}
+
+	if account.Candidate.Votes == nil {
+		account.Candidate.Votes = new(big.Int)
+	}
+
+	return account
+}
 
 type AccountDao struct{
 	engine *sql.DB
@@ -34,7 +57,7 @@ func (dao *AccountDao) Get(addr common.Address) (*types.AccountData, error) {
 	}
 
 	if val == nil{
-		log.Errorf("get account.is not exist.addr: " + addr.Hex())
+		// log.Errorf("get account.is not exist.addr: " + addr.Hex())
 		return nil, ErrNotExist
 	}
 

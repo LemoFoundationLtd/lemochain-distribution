@@ -62,7 +62,7 @@ func New(cfg *config.Config) (*Node, error) {
 	n := &Node{
 		config: cfg,
 		chain:  bc,
-		accMan: bc.AccountManager(),
+		// accMan: bc.AccountManager(),
 		pm:     pm,
 		txPool: chain.NewTxPool(),
 	}

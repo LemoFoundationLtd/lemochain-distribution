@@ -4,17 +4,17 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	"strconv"
 	"database/sql"
-	"github.com/meitu/go-ethereum/common"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
 )
 
 type Context struct {
-	key []byte
-	flg int
+	key string
 	val []byte
 }
 
 var (
-	ContextFlgCurrentBlock = 1
+	ContextKeyCurrentBlock = "context.chain.current_block"
 )
 
 type ContextDao struct{
@@ -25,8 +25,41 @@ func NewContextDao(db DBEngine) (*ContextDao) {
 	return &ContextDao{engine:db.GetDB()}
 }
 
-func (dao *ContextDao) ContextSet(flg int, key []byte, val []byte) (error) {
-	result, err := dao.engine.Exec("REPLACE INTO t_context(lm_key, lm_flg, lm_val) VALUES (?,?,?)", common.ToHex(key), flg, val)
+func (dao *ContextDao) GetCurrentBlock() (*types.Block, error) {
+	val, err := dao.ContextGet(ContextKeyCurrentBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	if val == nil{
+		return nil, ErrNotExist
+	}
+
+	var block types.Block
+	err = rlp.DecodeBytes(val, &block)
+	if err != nil{
+		return nil, err
+	}else{
+		return &block, nil
+	}
+}
+
+func (dao *ContextDao) SetCurrentBlock(block *types.Block) (error){
+	if block == nil{
+		log.Errorf("set current block. block is ni.")
+		return ErrArgInvalid
+	}
+
+	val, err := rlp.EncodeToBytes(block)
+	if err != nil{
+		return err
+	}else{
+		return dao.ContextSet(ContextKeyCurrentBlock, val)
+	}
+}
+
+func (dao *ContextDao) ContextSet(key string, val []byte) (error) {
+	result, err := dao.engine.Exec("REPLACE INTO t_context(lm_key, lm_val) VALUES (?,?)", key, val)
 	if err != nil {
 		return err
 	}
@@ -37,15 +70,30 @@ func (dao *ContextDao) ContextSet(flg int, key []byte, val []byte) (error) {
 	}
 
 	if effected < 1{
-		log.Errorf("insert context flg: " + strconv.Itoa(flg) + "|affected: " + strconv.Itoa(int(effected)))
+		log.Errorf("insert context.affected: " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
 	}else{
 		return nil
 	}
 }
 
+func (dao *ContextDao) ContextGet(key string)([]byte, error){
+	row := dao.engine.QueryRow("SELECT lm_val FROM t_context WHERE lm_key = ?", key)
+	var val []byte
+	err := row.Scan(&val)
+	if ErrIsNotExist(err) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	} else {
+		return val, nil
+	}
+}
+
 func (dao *ContextDao) ContextLoad() ([]*Context, error) {
-	rows, err := dao.engine.Query("SELECT lm_key, lm_flg, lm_val FROM t_context")
+	rows, err := dao.engine.Query("SELECT lm_key, lm_val FROM t_context")
 	if err != nil {
 		return nil, err
 	}
@@ -54,15 +102,13 @@ func (dao *ContextDao) ContextLoad() ([]*Context, error) {
 	for rows.Next() {
 		var key string
 		var val []byte
-		var flg int
-		err := rows.Scan(&key, &flg, &val)
+		err := rows.Scan(&key, &val)
 		if err != nil {
 			return nil, err
 		}
 
 		result = append(result, &Context{
-			key:common.FromHex(key),
-			flg:flg,
+			key:key,
 			val:val,
 		})
 	}
