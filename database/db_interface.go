@@ -70,7 +70,10 @@ func (db *MySqlDB) Clear() error {
 		return err
 	}
 
-
+	_, err = db.engine.Exec("DELETE FROM t_candidates")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
