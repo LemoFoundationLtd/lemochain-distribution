@@ -18,6 +18,7 @@ type ReBuildEngine struct {
 	AssetIdCache map[common.Hash]string
 	EquityCache  map[common.Hash]*types.AssetEquity
 	StorageCache map[common.Hash][]byte
+	ChangeCandidates   map[common.Address]bool
 }
 
 func NewReBuildEngine(store database.DBEngine, block *types.Block) (*ReBuildEngine) {
@@ -208,6 +209,26 @@ func (engine *ReBuildEngine) saveEquity(id common.Hash, equity *types.AssetEquit
 	return nil
 }
 
+func (engine *ReBuildEngine) saveCandidates() (error){
+	candidateDao := database.NewCandidateDao(engine.Store)
+	for k, v := range engine.ChangeCandidates {
+		if v {
+			err := candidateDao.Set(&database.CandidateItem{
+				User:k,
+				Votes:engine.ReBuildAccountsCache[k].Candidate.Votes,
+			})
+
+			if err != nil{
+				return err
+			}
+		}else{
+			// del
+		}
+	}
+
+	return nil
+}
+
 func (engine *ReBuildEngine) resolve() {
 
 	engine.LogsCache = engine.Block.ChangeLogs
@@ -240,6 +261,19 @@ func (engine *ReBuildEngine) resolve() {
 			for ak, av := range v.Storage {
 				engine.StorageCache[ak] = av
 			}
+		}
+
+		isCandidate := v.isCandidate(v.Candidate.Profile)
+		if isCandidate && v.IsCancelCandidate {
+			panic("not exist at the same time.")
+		}
+
+		if isCandidate {
+			engine.ChangeCandidates[v.Address] = true
+		}
+
+		if v.IsCancelCandidate {
+			engine.ChangeCandidates[v.Address] = false
 		}
 	}
 }

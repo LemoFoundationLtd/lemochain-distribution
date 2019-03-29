@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
+	"strconv"
 )
 
 type ReBuildAccount struct {
@@ -18,6 +19,8 @@ type ReBuildAccount struct {
 	AssetEquities map[common.Hash]*types.AssetEquity
 	Storage       map[common.Hash][]byte
 	Events        []*types.Event
+
+	IsCancelCandidate bool
 
 	NextVersion map[types.ChangeLogType]uint32
 	suicided      bool
@@ -37,6 +40,25 @@ func NewReBuildAccount(store database.DBEngine, data *types.AccountData) (*ReBui
 	reBuildAccount.Storage = make(map[common.Hash][]byte)
 	reBuildAccount.Events = make([]*types.Event, 0)
 	return reBuildAccount
+}
+
+
+func (account *ReBuildAccount) isCandidate(profile types.Profile) bool {
+	if len(profile) <= 0 {
+		return false
+	}
+
+	result, ok := profile[types.CandidateKeyIsCandidate]
+	if !ok {
+		return false
+	}
+
+	val, err := strconv.ParseBool(result)
+	if err != nil {
+		panic("to bool err : " + err.Error())
+	} else {
+		return val
+	}
 }
 
 func (account *ReBuildAccount) BuildAccountData() (*types.AccountData) {
@@ -100,6 +122,10 @@ func (account *ReBuildAccount) GetCandidate() types.Profile {
 }
 
 func (account *ReBuildAccount) SetCandidate(profile types.Profile) {
+	if account.isCandidate(account.Candidate.Profile) && !account.isCandidate(profile){
+		account.IsCancelCandidate = true
+	}
+
 	account.Candidate.Profile = make(types.Profile)
 	if len(profile) <= 0 {
 		return

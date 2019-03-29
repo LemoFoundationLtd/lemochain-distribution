@@ -53,6 +53,30 @@ func (dao *CandidateDao) Set(item *CandidateItem) (error) {
 	}
 }
 
+func (dao *CandidateDao) Del(user common.Address) (error) {
+	if user == (common.Address{}) {
+		log.Errorf("del candidate. user is common.address{}")
+		return ErrArgInvalid
+	}
+
+	result, err := dao.engine.Exec("DELETE FROM t_candidates WHERE addr = ?", user.Hex())
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil{
+		return err
+	}
+
+	if affected <= 0 {
+		log.Errorf("del candidate affected = 0")
+		return ErrUnKnown
+	}else{
+		return nil
+	}
+}
+
 func (dao *CandidateDao) buildCandidateBatch(rows *sql.Rows) ([]*CandidateItem, error) {
 	result := make([]*CandidateItem, 0)
 	for rows.Next() {

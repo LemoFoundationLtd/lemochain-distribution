@@ -29,16 +29,30 @@ func TestCandidateDao_Set(t *testing.T) {
 	err := candidateDao.Set(candidates[0])
 	assert.NoError(t, err)
 
-	for index := 1; index < len(candidates); index++{
+	result, total, err := candidateDao.GetPageWithTotal(0, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(result))
+	assert.Equal(t, 1, total)
+
+	err = candidateDao.Del(candidates[0].User)
+	assert.NoError(t, err)
+
+	result, total, err = candidateDao.GetPageWithTotal(0, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(result))
+	assert.Equal(t, 0, total)
+
+
+	for index := 0; index < len(candidates); index++{
 		candidateDao.Set(candidates[index])
 	}
 
-	result, err := candidateDao.GetTop(30)
+	result, err = candidateDao.GetTop(30)
 	assert.NoError(t, err)
 	assert.Equal(t, 30, len(result))
 	assert.Equal(t, result[0], candidates[49])
 
-	result, total, err := candidateDao.GetPageWithTotal(0, 40)
+	result, total, err = candidateDao.GetPageWithTotal(0, 40)
 	assert.NoError(t, err)
 	assert.Equal(t, 40, len(result))
 	assert.Equal(t, 50, total)
@@ -63,6 +77,9 @@ func TestCandidateDao_ArgInvalid(t *testing.T) {
 	candidateDao := NewCandidateDao(db)
 
 	err := candidateDao.Set(nil)
+	assert.Equal(t, ErrArgInvalid, err)
+
+	err = candidateDao.Del(common.Address{})
 	assert.Equal(t, ErrArgInvalid, err)
 
 	result, err := candidateDao.GetTop(0)
