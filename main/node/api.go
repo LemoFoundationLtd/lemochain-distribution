@@ -11,13 +11,13 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-core/common/hexutil"
-	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
-	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
-	"math/big"
-	"time"
-	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	"github.com/LemoFoundationLtd/lemochain-core/store"
+	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
+	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
+	"math/big"
+	"time"
 )
 
 const (
@@ -129,17 +129,17 @@ func (a *PublicAccountAPI) GetAssetEquityByAssetCode(LemoAddress string, assetCo
 
 	equityDao := database.NewEquityDao(dbEngine)
 	result, total, err := equityDao.GetPageByCodeWithTotal(address, assetCode, index, limit)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return &AssetEquityBatchRsp{
 			Equities: result,
-			Total:uint32(total),
+			Total:    uint32(total),
 		}, nil
 	}
 }
 
-func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int)(*AssetEquityBatchRsp, error) {
+func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int) (*AssetEquityBatchRsp, error) {
 	address, err := common.StringToAddress(LemoAddress)
 	if err != nil {
 		return nil, err
@@ -150,17 +150,17 @@ func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int)(
 
 	equityDao := database.NewEquityDao(dbEngine)
 	result, total, err := equityDao.GetPageWithTotal(address, index, limit)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return &AssetEquityBatchRsp{
 			Equities: result,
-			Total:uint32(total),
+			Total:    uint32(total),
 		}, nil
 	}
 }
 
-func (a *PublicAccountAPI) GetAsset(assetCode common.Hash)(*types.Asset, error){
+func (a *PublicAccountAPI) GetAsset(assetCode common.Hash) (*types.Asset, error) {
 	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
 	defer dbEngine.Close()
 
@@ -168,7 +168,7 @@ func (a *PublicAccountAPI) GetAsset(assetCode common.Hash)(*types.Asset, error){
 	return assetDao.Get(assetCode)
 }
 
-func (a *PublicAccountAPI) GetMateData(assetId common.Hash)(*database.MateData, error) {
+func (a *PublicAccountAPI) GetMateData(assetId common.Hash) (*database.MateData, error) {
 	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
 	defer dbEngine.Close()
 
@@ -376,7 +376,7 @@ func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
 }
 
 // SendReimbursedGasTx gas代付交易 todo 测试使用
-func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string, to, gasPayer common.Address, amount int64, data []byte, txType uint8, toName, message string) (common.Hash, error) {
+func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string, to, gasPayer common.Address, amount int64, data []byte, txType uint16, toName, message string) (common.Hash, error) {
 	tx := types.NewReimbursementTransaction(to, gasPayer, big.NewInt(amount), data, txType, t.node.chainID, uint64(time.Now().Unix()+1800), toName, message)
 	senderPriv, _ := crypto.HexToECDSA(senderPrivate)
 	gasPayerPriv, _ := crypto.HexToECDSA(gasPayerPrivate)
@@ -612,7 +612,7 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 	}, nil
 }
 
-func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, endTime int64, index int, size int)(*TxListRes, error){
+func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, endTime int64, index int, size int) (*TxListRes, error) {
 	src, err := common.StringToAddress(lemoAddress)
 	if err != nil {
 		return nil, err

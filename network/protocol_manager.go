@@ -183,6 +183,7 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 			pm.forceSyncTimer.Reset(ForceSyncInterval)
 
 			if pm.corePeer == nil {
+				log.Debug("drop connect peer")
 				break
 			}
 			// peer's latest height
@@ -199,6 +200,7 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 				}
 				// local chain has this block
 				if b.Height() == 0 || pm.chain.HasBlock(b.ParentHash()) {
+					log.Debugf("will insert Block height: %d", b.Height())
 					pm.insertBlock(b)
 				} else {
 					pm.blockCache.Add(b)
@@ -373,7 +375,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	}
 	defer func() {
 		if msg.Code == coreNetwork.BlocksMsg {
-			log.Debugf("receive msg: %d", msg.Code)
+			log.Debugf("receive blocks msg: %d", msg.Code)
 		}
 	}()
 

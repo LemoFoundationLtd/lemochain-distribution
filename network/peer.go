@@ -105,6 +105,7 @@ func (p *peer) RequestBlocks(from, to uint32) int {
 		log.Warnf("RequestBlocks: write message failed: %v", err)
 		return -3
 	}
+	log.Debugf("Request Blocks height from %d to %d", from, to)
 	return 0
 }
 
@@ -120,6 +121,7 @@ func (p *peer) Handshake(content []byte) (*ProtocolHandshake, error) {
 		if msg, err := p.conn.ReadMsg(); err == nil {
 			msgCh <- msg
 		} else {
+			log.Warnf("when handshake: read message error: ", err)
 			msgCh <- nil
 		}
 	}()

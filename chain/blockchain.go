@@ -9,13 +9,13 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNet "github.com/LemoFoundationLtd/lemochain-core/network"
 	db "github.com/LemoFoundationLtd/lemochain-core/store/protocol"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"sync"
 	"sync/atomic"
-	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 )
 
 type BlockChain struct {
-	chainID      uint16
+	chainID uint16
 	// db           db.ChainDB
 	// am           *account.Manager
 	currentBlock atomic.Value // latest block in current chain
@@ -40,7 +40,7 @@ func NewBlockChain(chainID uint16, db db.ChainDB) (bc *BlockChain, err error) {
 		return nil, err
 	}
 
-	if err := bc.loadGenesis(); err != nil{
+	if err := bc.loadGenesis(); err != nil {
 		return nil, err
 	}
 
@@ -59,14 +59,14 @@ func (bc *BlockChain) Lock() *sync.Mutex {
 func (bc *BlockChain) loadGenesis() error {
 	blockDao := database.NewBlockDao(bc.dbEngine)
 	block, err := blockDao.GetBlockByHeight(0)
-	if err == database.ErrNotExist{
+	if err == database.ErrNotExist {
 		return nil
 	}
 
-	if err != nil{
+	if err != nil {
 		log.Errorf("get genesis err: " + err.Error())
 		return err
-	}else{
+	} else {
 		bc.genesisBlock = block
 		return nil
 	}
@@ -175,13 +175,16 @@ func (bc *BlockChain) StableBlock() *types.Block {
 
 // updateDeputyNodes update deputy nodes map
 func (bc *BlockChain) updateDeputyNodes(block *types.Block) {
-	if block.Height()%params.TermDuration == 0 {
+	if block.Height() == 0 {
+		deputynode.Instance().Add(0, block.DeputyNodes)
+		log.Debugf("add genesis block deputy nodes: %v", block.DeputyNodes)
+	} else if block.Height()%params.TermDuration == 0 {
 		deputynode.Instance().Add(block.Height()+params.InterimDuration+1, block.DeputyNodes)
 		log.Debugf("add new term deputy nodes: %v", block.DeputyNodes)
 	}
 }
 
-func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (error) {
+func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) error {
 	bc.mux.Lock()
 	defer bc.mux.Unlock()
 
@@ -194,12 +197,13 @@ func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err
 
 	reBuildEngine := NewReBuildEngine(bc.dbEngine, block)
 	err = reBuildEngine.ReBuild()
-	if err != nil{
+	if err != nil {
 		return err
-	}else{
+	} else {
 		bc.updateDeputyNodes(block)
 		bc.currentBlock.Store(block)
 		bc.stableBlock.Store(block)
+		log.Debugf("insert block success. Height:%d", block.Height())
 		return nil
 	}
 }
