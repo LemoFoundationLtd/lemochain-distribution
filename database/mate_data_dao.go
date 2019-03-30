@@ -9,11 +9,12 @@ import (
 	"strconv"
 )
 
+//go:generate gencodec -type MateData -out gen_matedata_json.go
 type MateData struct {
-	Id      common.Hash
-	Code    common.Hash
-	Addr    common.Address
-	Profile string
+	Id      common.Hash    `json:"id" gencodec:"required"`
+	Code    common.Hash    `json:"code" gencodec:"required"`
+	Owner   common.Address `json:"owner" gencodec:"required"`
+	Profile string         `json:"profile" gencodec:"required"`
 }
 
 type MateDataDao struct {
@@ -91,7 +92,7 @@ func (dao *MateDataDao) buildMateDataBatch(rows *sql.Rows) ([]*MateData, error) 
 			mateData := &MateData{
 				Code:    common.HexToHash(code),
 				Id:      common.HexToHash(id),
-				Addr:    common.HexToAddress(addr),
+				Owner:   common.HexToAddress(addr),
 				Profile: profile,
 			}
 			result = append(result, mateData)
@@ -112,7 +113,7 @@ func (dao *MateDataDao) GetPage(addr common.Address, start, limit int) ([]*MateD
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, start + limit)
+	rows, err := stmt.Query(addr.Hex(), start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +155,7 @@ func (dao *MateDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*Ma
 		return nil, err
 	}
 
-	rows, err := stmt.Query(code.Hex(), start, start + limit)
+	rows, err := stmt.Query(code.Hex(), start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -201,9 +202,9 @@ func (dao *MateDataDao) query(id common.Hash) (*MateData, int, error) {
 	}
 
 	result := &MateData{
-		Id:   id,
-		Code: common.HexToHash(code),
-		Addr: common.HexToAddress(addr),
+		Id:    id,
+		Code:  common.HexToHash(code),
+		Owner: common.HexToAddress(addr),
 	}
 
 	var profile string
@@ -223,7 +224,7 @@ func (dao *MateDataDao) insert(mateData *MateData) (error) {
 		return err
 	}
 
-	result, err := dao.engine.Exec(sql, mateData.Code.Hex(), mateData.Id.Hex(), mateData.Addr.Hex(), val, 1, time.Now().UnixNano()/1000000)
+	result, err := dao.engine.Exec(sql, mateData.Code.Hex(), mateData.Id.Hex(), mateData.Owner.Hex(), val, 1, time.Now().UnixNano()/1000000)
 	if err != nil {
 		return err
 	}
@@ -248,7 +249,7 @@ func (dao *MateDataDao) update(mateData *MateData, version int) (error) {
 	}
 
 	sql := "UPDATE t_mate_data SET attrs = ?, version = version + 1 WHERE id = ? AND code = ? AND addr = ? AND version = ?"
-	result, err := dao.engine.Exec(sql, val, mateData.Id.Hex(), mateData.Code.Hex(), mateData.Addr.Hex(), version)
+	result, err := dao.engine.Exec(sql, val, mateData.Id.Hex(), mateData.Code.Hex(), mateData.Owner.Hex(), version)
 	if err != nil {
 		return err
 	}

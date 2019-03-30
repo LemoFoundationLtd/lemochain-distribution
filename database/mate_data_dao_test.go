@@ -11,7 +11,7 @@ func NewMateData(id common.Hash, code common.Hash, addr common.Address, isNil bo
 	result := &MateData{
 		Id:   id,
 		Code: code,
-		Addr: addr,
+		Owner: addr,
 	}
 
 	if !isNil {
@@ -103,11 +103,11 @@ func TestMateDataDao_GetPage(t *testing.T) {
 	}
 
 	data := NewMateDataBatch1(ids[0], false)
-	result, err := mateDataDao.GetPage(data.Addr, 0, 5)
+	result, err := mateDataDao.GetPage(data.Owner, 0, 5)
 	assert.NoError(t, err)
 	assert.Equal(t, 5, len(result))
 
-	result, err = mateDataDao.GetPage(data.Addr, 20, 1)
+	result, err = mateDataDao.GetPage(data.Owner, 20, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(result))
 }
@@ -125,12 +125,12 @@ func TestMateDataDao_GetPageWithTotal(t *testing.T) {
 	}
 
 	data := NewMateDataBatch1(ids[0], false)
-	result, total, err := mateDataDao.GetPageWithTotal(data.Addr, 0, 5)
+	result, total, err := mateDataDao.GetPageWithTotal(data.Owner, 0, 5)
 	assert.NoError(t, err)
 	assert.Equal(t, 20, total)
 	assert.Equal(t, 5, len(result))
 
-	result, total, err = mateDataDao.GetPageWithTotal(data.Addr, 20, 1)
+	result, total, err = mateDataDao.GetPageWithTotal(data.Owner, 20, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, 20, total)
 	assert.Equal(t, 0, len(result))
