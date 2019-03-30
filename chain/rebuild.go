@@ -4,28 +4,29 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
+	"time"
 )
 
 type ReBuildEngine struct {
-	Store        database.DBEngine
+	Store database.DBEngine
 
-	Block        *types.Block
-	LogsCache    []*types.ChangeLog
-	TxCache      []*types.Transaction
+	Block     *types.Block
+	LogsCache []*types.ChangeLog
+	TxCache   []*types.Transaction
 
 	ReBuildAccountsCache map[common.Address]*ReBuildAccount
-	AssetCodeCache   map[common.Hash]*types.Asset
-	AssetIdCache map[common.Hash]string
-	EquityCache  map[common.Hash]*types.AssetEquity
-	StorageCache map[common.Hash][]byte
-	ChangeCandidates   map[common.Address]bool
+	AssetCodeCache       map[common.Hash]*types.Asset
+	AssetIdCache         map[common.Hash]string
+	EquityCache          map[common.Hash]*types.AssetEquity
+	StorageCache         map[common.Hash][]byte
+	ChangeCandidates     map[common.Address]bool
 }
 
 func NewReBuildEngine(store database.DBEngine, block *types.Block) (*ReBuildEngine) {
 	return &ReBuildEngine{
-		Store:	store,
-		LogsCache:block.ChangeLogs,
-		Block: 	block,
+		Store:                store,
+		LogsCache:            block.ChangeLogs,
+		Block:                block,
 		ReBuildAccountsCache: make(map[common.Address]*ReBuildAccount),
 	}
 }
@@ -39,13 +40,12 @@ func (engine *ReBuildEngine) GetAccount(address common.Address) (types.AccountAc
 	accountDao := database.NewAccountDao(engine.Store)
 	account, err := accountDao.Get(address)
 	if err != nil {
-		if err == database.ErrNotExist{
+		if err == database.ErrNotExist {
 			account = database.NewAccountData(address)
-		}else{
+		} else {
 			panic("get account from database err: " + err.Error())
 		}
 	}
-
 
 	reBuildAccount = NewReBuildAccount(engine.Store, account)
 	engine.ReBuildAccountsCache[address] = reBuildAccount
@@ -81,7 +81,7 @@ func (engine *ReBuildEngine) Save() (error) {
 	}
 
 	err = engine.saveTxBatch(engine.TxCache)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -91,12 +91,12 @@ func (engine *ReBuildEngine) Save() (error) {
 	}
 
 	err = engine.saveAssetCodeBatch(engine.AssetCodeCache)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	err = engine.saveAssetIdBatch(engine.AssetIdCache)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -136,9 +136,9 @@ func (engine *ReBuildEngine) saveAccount(account *types.AccountData) (error) {
 }
 
 func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) (error) {
-	for index := 0; index < len(txes); index++{
+	for index := 0; index < len(txes); index++ {
 		err := engine.saveTx(txes[index])
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -147,15 +147,33 @@ func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) (error) {
 }
 
 func (engine *ReBuildEngine) saveTx(tx *types.Transaction) (error) {
-	// txDao := database.NewTxDao(engine.Store)
-	// return txDao.Set(tx)
+	txDao := database.NewTxDao(engine.Store)
+
+	from, err := tx.From()
+	if err != nil {
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return txDao.Set(&database.Tx{
+		THash:  tx.Hash(),
+		BHash:  engine.Block.Hash(),
+		Height: engine.Block.Height(),
+		From:   from,
+		To:     *tx.To(),
+		Tx:     tx,
+		St:     time.Now().UnixNano() / 1000000,
+	})
 	return nil
 }
 
 func (engine *ReBuildEngine) saveStorageBatch(storages map[common.Hash][]byte) (error) {
 	for k, v := range storages {
 		err := engine.saveStorage(k, v)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -184,7 +202,7 @@ func (engine *ReBuildEngine) saveAssetCode(code common.Hash, asset *types.Asset)
 func (engine *ReBuildEngine) saveAssetIdBatch(assetIds map[common.Hash]string) (error) {
 	for k, v := range assetIds {
 		err := engine.saveAssetId(k, v)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -198,7 +216,7 @@ func (engine *ReBuildEngine) saveAssetId(id common.Hash, val string) (error) {
 func (engine *ReBuildEngine) saveEquitiesBatch(equities map[common.Hash]*types.AssetEquity) (error) {
 	for k, v := range equities {
 		err := engine.saveEquity(k, v)
-		if err != nil{
+		if err != nil {
 			return err
 		}
 	}
@@ -209,19 +227,19 @@ func (engine *ReBuildEngine) saveEquity(id common.Hash, equity *types.AssetEquit
 	return nil
 }
 
-func (engine *ReBuildEngine) saveCandidates() (error){
+func (engine *ReBuildEngine) saveCandidates() (error) {
 	candidateDao := database.NewCandidateDao(engine.Store)
 	for k, v := range engine.ChangeCandidates {
 		if v {
 			err := candidateDao.Set(&database.CandidateItem{
-				User:k,
-				Votes:engine.ReBuildAccountsCache[k].Candidate.Votes,
+				User:  k,
+				Votes: engine.ReBuildAccountsCache[k].Candidate.Votes,
 			})
 
-			if err != nil{
+			if err != nil {
 				return err
 			}
-		}else{
+		} else {
 			// del
 		}
 	}

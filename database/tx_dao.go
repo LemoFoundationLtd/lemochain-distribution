@@ -10,11 +10,13 @@ import (
 )
 
 type Tx struct {
-	BHash common.Hash
-	THash common.Hash
-	From  common.Address
-	To    common.Address
-	Tx  *types.Transaction
+	BHash  common.Hash
+	Height uint32
+	THash  common.Hash
+	From   common.Address
+	To     common.Address
+	Tx     *types.Transaction
+	St     int64
 }
 
 type TxDao struct {
@@ -22,7 +24,7 @@ type TxDao struct {
 }
 
 func NewTxDao(db DBEngine) (*TxDao) {
-	return &TxDao{engine:db.GetDB()}
+	return &TxDao{engine: db.GetDB()}
 }
 
 func (dao *TxDao) Set(tx *Tx) (error) {
@@ -31,14 +33,15 @@ func (dao *TxDao) Set(tx *Tx) (error) {
 		return ErrArgInvalid
 	}
 
-	sql := "REPLACE INTO t_tx(thash, bhash, faddr, taddr, tx, utc_st)VALUES(?,?,?,?,?,?)"
+	sql := "REPLACE INTO t_tx(thash, bhash, height, faddr, taddr, tx, utc_st)VALUES(?,?,?,?,?,?,?)"
 
 	val, err := rlp.EncodeToBytes(tx.Tx)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	_, err = dao.engine.Exec(sql, tx.THash.Hex(), tx.BHash.Hex(), tx.From.Hex(), tx.To.Hex(), val, time.Now().UnixNano() / 1000000)
+	height := int64(tx.Height)
+	_, err = dao.engine.Exec(sql, tx.THash.Hex(), tx.BHash.Hex(), height, tx.From.Hex(), tx.To.Hex(), val, time.Now().UnixNano()/1000000)
 	if err != nil {
 		return err
 	} else {
@@ -52,14 +55,16 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 		return nil, ErrArgInvalid
 	}
 
-	sql := "SELECT thash, bhash, faddr, taddr, tx FROM t_tx WHERE thash = ?"
+	sql := "SELECT thash, bhash, height, faddr, taddr, tx, utc_st FROM t_tx WHERE thash = ?"
 	row := dao.engine.QueryRow(sql, hash.Hex())
 	var thash string
 	var bhash string
+	var height int64
 	var faddr string
 	var taddr string
+	var st int64
 	var val []byte
-	err := row.Scan(&thash, &bhash, &faddr, &taddr, &val)
+	err := row.Scan(&thash, &bhash, &height, &faddr, &taddr, &val, &st)
 	if ErrIsNotExist(err) {
 		return nil, ErrNotExist
 	}
@@ -69,26 +74,27 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 	}
 
 	tx, err := dao.encodeTx(val)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return &Tx{
 			THash: common.HexToHash(thash),
-			BHash:common.HexToHash(bhash),
-			From:common.HexToAddress(faddr),
-			To:common.HexToAddress(taddr),
-			Tx:tx,
+			BHash: common.HexToHash(bhash),
+			Height:uint32(height),
+			From:  common.HexToAddress(faddr),
+			To:    common.HexToAddress(taddr),
+			Tx:    tx,
+			St:    st,
 		}, nil
 	}
 }
-
 
 func (dao *TxDao) encodeTx(val []byte) (*types.Transaction, error) {
 	var tx types.Transaction
 	err := rlp.DecodeBytes(val, &tx)
 	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return &tx, nil
 	}
 }
@@ -98,31 +104,33 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 	for rows.Next() {
 		var thash string
 		var bhash string
+		var height int64
 		var faddr string
 		var taddr string
+		var st int64
 		var val []byte
-		var utcSt int64
-		err := rows.Scan(&thash, &bhash, &faddr, &taddr, &val, &utcSt)
+		err := rows.Scan(&thash, &bhash, &height, &faddr, &taddr, &val, &st)
 		if err != nil {
 			return nil, err
 		}
 
 		tx, err := dao.encodeTx(val)
-		if err != nil{
+		if err != nil {
 			return nil, err
-		}else{
+		} else {
 			result = append(result, &Tx{
 				THash: common.HexToHash(thash),
-				BHash:common.HexToHash(bhash),
-				From:common.HexToAddress(faddr),
-				To:common.HexToAddress(taddr),
-				Tx:tx,
+				BHash: common.HexToHash(bhash),
+				Height:uint32(height),
+				From:  common.HexToAddress(faddr),
+				To:    common.HexToAddress(taddr),
+				Tx:    tx,
+				St:    st,
 			})
 		}
 	}
 	return result, nil
 }
-
 
 func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
@@ -130,13 +138,13 @@ func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, bhash, faddr, taddr, tx, utc_st FROM t_tx WHERE faddr = ? or taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, bhash, height, faddr, taddr, tx, utc_st FROM t_tx WHERE faddr = ? or taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), addr.Hex(), start, start + limit)
+	rows, err := stmt.Query(addr.Hex(), addr.Hex(), start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -159,13 +167,12 @@ func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, limit int) ([]*
 	}
 
 	txes, err := dao.GetByAddr(addr, start, limit)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return txes, cnt, nil
 	}
 }
-
 
 func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (limit <= 0) {
@@ -173,13 +180,13 @@ func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, l
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, bhash, faddr, taddr, tx, utc_st FROM t_tx WHERE (faddr = ? OR taddr = ?) AND utc_st > ? AND utc_st < ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, bhash, height, faddr, taddr, tx, utc_st FROM t_tx WHERE (faddr = ? OR taddr = ?) AND utc_st > ? AND utc_st < ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), addr.Hex(), stStop, stStart, start, start + limit)
+	rows, err := stmt.Query(addr.Hex(), addr.Hex(), stStop, stStart, start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -202,13 +209,12 @@ func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64,
 	}
 
 	txes, err := dao.GetByTime(addr, stStart, stStop, start, limit)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return txes, cnt, nil
 	}
 }
-
 
 func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
@@ -216,13 +222,13 @@ func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, bhash, faddr, taddr, tx, utc_st FROM t_tx WHERE faddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, bhash, height, faddr, taddr, tx, utc_st FROM t_tx WHERE faddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, start + limit)
+	rows, err := stmt.Query(addr.Hex(), start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -245,13 +251,12 @@ func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, limit int) ([]*
 	}
 
 	txes, err := dao.GetByFrom(addr, start, limit)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return txes, cnt, nil
 	}
 }
-
 
 func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
@@ -259,13 +264,13 @@ func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) 
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, bhash, faddr, taddr, tx, utc_st FROM t_tx WHERE taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, bhash, height, faddr, taddr, tx, utc_st FROM t_tx WHERE taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, start + limit)
+	rows, err := stmt.Query(addr.Hex(), start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -288,9 +293,9 @@ func (dao *TxDao) GetByToWithTotal(addr common.Address, start, limit int) ([]*Tx
 	}
 
 	txes, err := dao.GetByTo(addr, start, limit)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return txes, cnt, nil
 	}
 }

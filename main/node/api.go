@@ -148,28 +148,28 @@ func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, e
 
 	candidateDao := database.NewCandidateDao(dbEngine)
 	candidates, total, err := candidateDao.GetPageWithTotal(index, size)
-	if err != nil{
+	if err != nil {
 		return nil, err
 	}
 
 	accountDao := database.NewAccountDao(dbEngine)
 	result := make([]*CandidateInfo, len(candidates))
-	for index := 0; index < len(candidates); index++{
+	for index := 0; index < len(candidates); index++ {
 		account, err := accountDao.Get(candidates[index].User)
-		if err != nil{
+		if err != nil {
 			return nil, err
 		}
 
 		result[index] = &CandidateInfo{
-			Votes:candidates[index].Votes.String(),
-			Profile:account.Candidate.Profile,
-			CandidateAddress:candidates[index].User.String(),
+			Votes:            candidates[index].Votes.String(),
+			Profile:          account.Candidate.Profile,
+			CandidateAddress: candidates[index].User.String(),
 		}
 	}
 
 	return &CandidateListRes{
-		CandidateList:result,
-		Total:uint32(total),
+		CandidateList: result,
+		Total:         uint32(total),
 	}, nil
 }
 
@@ -182,21 +182,21 @@ func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
 
 	candidateDao := database.NewCandidateDao(dbEngine)
 	candidateItems, err := candidateDao.GetTop(20)
-	if err != nil{
+	if err != nil {
 		return result
 	}
 
 	accountDao := database.NewAccountDao(dbEngine)
 	for _, info := range candidateItems {
 		account, err := accountDao.Get(info.User)
-		if err != nil{
+		if err != nil {
 			return result
 		}
 
 		result = append(result, &CandidateInfo{
-			Votes:account.Candidate.Votes.String(),
-			Profile:account.Candidate.Profile,
-			CandidateAddress:account.Address.String(),
+			Votes:            account.Candidate.Votes.String(),
+			Profile:          account.Candidate.Profile,
+			CandidateAddress: account.Address.String(),
 		})
 	}
 	return result
@@ -209,7 +209,7 @@ func (c *PublicChainAPI) GetBlockByHeight(height uint32, withBody bool) *types.B
 
 	blockDao := database.NewBlockDao(dbEngine)
 	block, err := blockDao.GetBlockByHeight(height)
-	if err != nil{
+	if err != nil {
 		log.Errorf("get block by height.err: " + err.Error())
 		return nil
 	}
@@ -230,7 +230,7 @@ func (c *PublicChainAPI) GetBlockByHash(hash string, withBody bool) *types.Block
 
 	blockDao := database.NewBlockDao(dbEngine)
 	block, err := blockDao.GetBlock(common.HexToHash(hash))
-	if err != nil{
+	if err != nil {
 		log.Errorf("get block by hash.err: " + err.Error())
 		return nil
 	}
@@ -261,7 +261,7 @@ func (c *PublicChainAPI) CurrentBlock(withBody bool) *types.Block {
 
 	contextDao := database.NewContextDao(dbEngine)
 	block, err := contextDao.GetCurrentBlock()
-	if err != nil{
+	if err != nil {
 		log.Errorf("get current block. err: " + err.Error())
 		return nil
 	}
@@ -491,45 +491,58 @@ func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error
 
 	txDao := database.NewTxDao(dbEngine)
 	tx, err := txDao.Get(txHash)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return &store.VTransactionDetail{
 			BlockHash: tx.BHash,
-			Height: 0,
-			Tx:tx.Tx,
-			St:0,
+			Height:    tx.Height,
+			Tx:        tx.Tx,
+			St:        tx.St,
 		}, nil
 	}
 }
+
 //
-// //go:generate gencodec -type TxListRes --field-override txListResMarshaling -out gen_tx_list_res_json.go
-// type TxListRes struct {
-// 	VTransactions []*store.VTransaction `json:"txList" gencodec:"required"`
-// 	Total         uint32                `json:"total" gencodec:"required"`
-// }
-// type txListResMarshaling struct {
-// 	Total hexutil.Uint32
-// }
+//go:generate gencodec -type TxListRes --field-override txListResMarshaling -out gen_tx_list_res_json.go
+type TxListRes struct {
+	VTransactions []*store.VTransaction `json:"txList" gencodec:"required"`
+	Total         uint32                `json:"total" gencodec:"required"`
+}
+type txListResMarshaling struct {
+	Total hexutil.Uint32
+}
 //
 // // GetTxListByAddress pull the list of transactions
-// func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int) (*TxListRes, error) {
-// 	src, err := common.StringToAddress(lemoAddress)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	bizDb := t.node.db.GetBizDatabase()
-// 	vTxs, total, err := bizDb.GetTxByAddr(src, index, size)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	txList := &TxListRes{
-// 		VTransactions: vTxs,
-// 		Total:         total,
-// 	}
-//
-// 	return txList, nil
-// }
+func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int) (*TxListRes, error) {
+	src, err := common.StringToAddress(lemoAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+
+	txDao := database.NewTxDao(dbEngine)
+	txes, total, err := txDao.GetByAddrWithTotal(src, index, size)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*store.VTransaction, len(txes))
+	for index := 0; index < len(txes); index++{
+		result[index] = &store.VTransaction{
+			Tx:        txes[index].Tx,
+			St:        txes[index].St,
+		}
+	}
+
+	return &TxListRes{
+		VTransactions: result,
+		Total:         uint32(total),
+	}, nil
+}
 
 // ReadContract read variables in a contract includes the return value of a function.
 // func (t *PublicTxAPI) ReadContract(to *common.Address, data hexutil.Bytes) (string, error) {
