@@ -256,6 +256,7 @@ func (engine *ReBuildEngine) resolve() {
 	engine.AssetIdCache = make(map[common.Hash]string)
 	engine.EquityCache = make(map[common.Hash]*types.AssetEquity)
 	engine.StorageCache = make(map[common.Hash][]byte)
+	engine.ChangeCandidates = make(map[common.Address]bool)
 	for _, v := range engine.ReBuildAccountsCache {
 		if len(v.AssetCodes) > 0 {
 			for ak, av := range v.AssetCodes {
