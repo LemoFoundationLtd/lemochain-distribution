@@ -158,15 +158,29 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) (error) {
 		return err
 	}
 
-	return txDao.Set(&database.Tx{
-		THash:  tx.Hash(),
-		BHash:  engine.Block.Hash(),
-		Height: engine.Block.Height(),
-		From:   from,
-		To:     *tx.To(),
-		Tx:     tx,
-		St:     time.Now().UnixNano() / 1000000,
-	})
+	to := tx.To()
+	if to == nil{
+		return txDao.Set(&database.Tx{
+			THash:  tx.Hash(),
+			BHash:  engine.Block.Hash(),
+			Height: engine.Block.Height(),
+			From:   from,
+			To:     common.Address{},
+			Tx:     tx,
+			St:     time.Now().UnixNano() / 1000000,
+		})
+	}else{
+		return txDao.Set(&database.Tx{
+			THash:  tx.Hash(),
+			BHash:  engine.Block.Hash(),
+			Height: engine.Block.Height(),
+			From:   from,
+			To:     *to,
+			Tx:     tx,
+			St:     time.Now().UnixNano() / 1000000,
+		})
+	}
+
 	return nil
 }
 
