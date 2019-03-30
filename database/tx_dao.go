@@ -124,9 +124,9 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 }
 
 
-func (dao *TxDao) GetByAddr(addr common.Address, start, stop int) ([]*Tx, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by addr.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by addr.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -136,7 +136,7 @@ func (dao *TxDao) GetByAddr(addr common.Address, start, stop int) ([]*Tx, error)
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), addr.Hex(), start, stop)
+	rows, err := stmt.Query(addr.Hex(), addr.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -144,9 +144,9 @@ func (dao *TxDao) GetByAddr(addr common.Address, start, stop int) ([]*Tx, error)
 	return dao.buildTxBatch(rows)
 }
 
-func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, stop int) ([]*Tx, int, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by addr with total.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, limit int) ([]*Tx, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by addr with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -158,7 +158,7 @@ func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, stop int) ([]*T
 		return nil, -1, err
 	}
 
-	txes, err := dao.GetByAddr(addr, start, stop)
+	txes, err := dao.GetByAddr(addr, start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{
@@ -167,9 +167,9 @@ func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, stop int) ([]*T
 }
 
 
-func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, stop int) ([]*Tx, error) {
-	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by time.addr is common.address{} or time stamp < 0 or start < 0 or stop <= 0")
+func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, limit int) ([]*Tx, error) {
+	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by time.addr is common.address{} or time stamp < 0 or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -179,7 +179,7 @@ func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, s
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), addr.Hex(), stStop, stStart, start, stop)
+	rows, err := stmt.Query(addr.Hex(), addr.Hex(), stStop, stStart, start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -187,9 +187,9 @@ func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, s
 	return dao.buildTxBatch(rows)
 }
 
-func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64, start, stop int) ([]*Tx, int, error) {
-	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by time with total.addr is common.address{} or time stamp < 0 or start < 0 or stop <= 0")
+func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64, start, limit int) ([]*Tx, int, error) {
+	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by time with total.addr is common.address{} or time stamp < 0 or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -201,7 +201,7 @@ func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64,
 		return nil, -1, err
 	}
 
-	txes, err := dao.GetByTime(addr, stStart, stStop, start, stop)
+	txes, err := dao.GetByTime(addr, stStart, stStop, start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{
@@ -210,9 +210,9 @@ func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64,
 }
 
 
-func (dao *TxDao) GetByFrom(addr common.Address, start, stop int) ([]*Tx, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by from.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by from.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -222,7 +222,7 @@ func (dao *TxDao) GetByFrom(addr common.Address, start, stop int) ([]*Tx, error)
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, stop)
+	rows, err := stmt.Query(addr.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -230,9 +230,9 @@ func (dao *TxDao) GetByFrom(addr common.Address, start, stop int) ([]*Tx, error)
 	return dao.buildTxBatch(rows)
 }
 
-func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, stop int) ([]*Tx, int, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by from with total.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, limit int) ([]*Tx, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by from with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -244,7 +244,7 @@ func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, stop int) ([]*T
 		return nil, -1, err
 	}
 
-	txes, err := dao.GetByFrom(addr, start, stop)
+	txes, err := dao.GetByFrom(addr, start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{
@@ -253,9 +253,9 @@ func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, stop int) ([]*T
 }
 
 
-func (dao *TxDao) GetByTo(addr common.Address, start, stop int) ([]*Tx, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by to.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by to.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -265,7 +265,7 @@ func (dao *TxDao) GetByTo(addr common.Address, start, stop int) ([]*Tx, error) {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, stop)
+	rows, err := stmt.Query(addr.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -273,9 +273,9 @@ func (dao *TxDao) GetByTo(addr common.Address, start, stop int) ([]*Tx, error) {
 	return dao.buildTxBatch(rows)
 }
 
-func (dao *TxDao) GetByToWithTotal(addr common.Address, start, stop int) ([]*Tx, int, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get tx by to with total.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *TxDao) GetByToWithTotal(addr common.Address, start, limit int) ([]*Tx, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by to with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -287,7 +287,7 @@ func (dao *TxDao) GetByToWithTotal(addr common.Address, start, stop int) ([]*Tx,
 		return nil, -1, err
 	}
 
-	txes, err := dao.GetByTo(addr, start, stop)
+	txes, err := dao.GetByTo(addr, start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{

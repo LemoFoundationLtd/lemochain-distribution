@@ -104,9 +104,9 @@ func (dao *CandidateDao) GetTop(size int)([]*CandidateItem, error){
 	return dao.GetPage(0, size)
 }
 
-func (dao *CandidateDao) GetPage(start, stop int) ([]*CandidateItem, error) {
-	if (start < 0) || (stop <= 0) {
-		log.Errorf("get candidate by page.start < 0 or stop <= 0")
+func (dao *CandidateDao) GetPage(start, limit int) ([]*CandidateItem, error) {
+	if (start < 0) || (limit <= 0) {
+		log.Errorf("get candidate by page.start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -116,7 +116,7 @@ func (dao *CandidateDao) GetPage(start, stop int) ([]*CandidateItem, error) {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(start, stop)
+	rows, err := stmt.Query(start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -124,9 +124,9 @@ func (dao *CandidateDao) GetPage(start, stop int) ([]*CandidateItem, error) {
 	return dao.buildCandidateBatch(rows)
 }
 
-func (dao *CandidateDao) GetPageWithTotal(start, stop int) ([]*CandidateItem, int, error) {
-	if (start < 0) || (stop <= 0) {
-		log.Errorf("get candidate by page with total.start < 0 or stop <= 0")
+func (dao *CandidateDao) GetPageWithTotal(start, limit int) ([]*CandidateItem, int, error) {
+	if (start < 0) || (limit <= 0) {
+		log.Errorf("get candidate by page with total.start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -138,7 +138,7 @@ func (dao *CandidateDao) GetPageWithTotal(start, stop int) ([]*CandidateItem, in
 		return nil, -1, err
 	}
 
-	candidates, err := dao.GetPage(start, stop)
+	candidates, err := dao.GetPage(start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{

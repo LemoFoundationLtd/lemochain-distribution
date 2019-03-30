@@ -100,9 +100,9 @@ func (dao *MateDataDao) buildMateDataBatch(rows *sql.Rows) ([]*MateData, error) 
 	return result, nil
 }
 
-func (dao *MateDataDao) GetPage(addr common.Address, start, stop int) ([]*MateData, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get mate by page.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *MateDataDao) GetPage(addr common.Address, start, limit int) ([]*MateData, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get mate by page.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -112,7 +112,7 @@ func (dao *MateDataDao) GetPage(addr common.Address, start, stop int) ([]*MateDa
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, stop)
+	rows, err := stmt.Query(addr.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +120,9 @@ func (dao *MateDataDao) GetPage(addr common.Address, start, stop int) ([]*MateDa
 	return dao.buildMateDataBatch(rows)
 }
 
-func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, stop int) ([]*MateData, int, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get mate by page with total.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*MateData, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get mate by page with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -134,7 +134,7 @@ func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, stop int) (
 		return nil, -1, err
 	}
 
-	data, err := dao.GetPage(addr, start, stop)
+	data, err := dao.GetPage(addr, start, limit)
 	if err != nil {
 		return nil, -1, err
 	} else {
@@ -142,9 +142,9 @@ func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, stop int) (
 	}
 }
 
-func (dao *MateDataDao) GetPageByCode(code common.Hash, start, stop int) ([]*MateData, error) {
-	if code == (common.Hash{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get mate by code.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *MateDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*MateData, error) {
+	if code == (common.Hash{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get mate by code.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -154,7 +154,7 @@ func (dao *MateDataDao) GetPageByCode(code common.Hash, start, stop int) ([]*Mat
 		return nil, err
 	}
 
-	rows, err := stmt.Query(code.Hex(), start, stop)
+	rows, err := stmt.Query(code.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -162,9 +162,9 @@ func (dao *MateDataDao) GetPageByCode(code common.Hash, start, stop int) ([]*Mat
 	return dao.buildMateDataBatch(rows)
 }
 
-func (dao *MateDataDao) GetPageByCodeWithTotal(code common.Hash, start, stop int) ([]*MateData, int, error) {
-	if code == (common.Hash{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get mate by code with total.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *MateDataDao) GetPageByCodeWithTotal(code common.Hash, start, limit int) ([]*MateData, int, error) {
+	if code == (common.Hash{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get mate by code with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -176,7 +176,7 @@ func (dao *MateDataDao) GetPageByCodeWithTotal(code common.Hash, start, stop int
 		return nil, -1, err
 	}
 
-	data, err := dao.GetPageByCode(code, start, stop)
+	data, err := dao.GetPageByCode(code, start, limit)
 	if err != nil {
 		return nil, -1, err
 	} else {

@@ -55,9 +55,9 @@ func (dao *EquityDao) Get(addr common.Address, id common.Hash) (*types.AssetEqui
 	}
 }
 
-func (dao *EquityDao) GetPage(addr common.Address, start, stop int) ([]*types.AssetEquity, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get equity by page.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *EquityDao) GetPage(addr common.Address, start, limit int) ([]*types.AssetEquity, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get equity by page.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -67,7 +67,7 @@ func (dao *EquityDao) GetPage(addr common.Address, start, stop int) ([]*types.As
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, stop)
+	rows, err := stmt.Query(addr.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +93,9 @@ func (dao *EquityDao) GetPage(addr common.Address, start, stop int) ([]*types.As
 	return result, nil
 }
 
-func (dao *EquityDao) GetPageWithTotal(addr common.Address, start, stop int) ([]*types.AssetEquity, int, error) {
-	if addr == (common.Address{}) || (start < 0) || (stop <= 0) {
-		log.Errorf("get equity by page with total.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *EquityDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*types.AssetEquity, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get equity by page with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -107,7 +107,7 @@ func (dao *EquityDao) GetPageWithTotal(addr common.Address, start, stop int) ([]
 		return nil, -1, err
 	}
 
-	result, err := dao.GetPage(addr, start, stop)
+	result, err := dao.GetPage(addr, start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{

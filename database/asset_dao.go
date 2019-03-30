@@ -81,9 +81,9 @@ func (dao *AssetDao) buildAssetBatch(rows *sql.Rows) ([]*types.Asset, error) {
 	return result, nil
 }
 
-func (dao *AssetDao) GetPage(addr common.Address, start, stop int) ([]*types.Asset, error) {
-	if (addr == (common.Address{}))  || (start < 0) || (stop <= 0) {
-		log.Errorf("get asset by page.addr is common.address{} or start < 0 or stop <= 0")
+func (dao *AssetDao) GetPage(addr common.Address, start, limit int) ([]*types.Asset, error) {
+	if (addr == (common.Address{}))  || (start < 0) || (limit <= 0) {
+		log.Errorf("get asset by page.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -93,7 +93,7 @@ func (dao *AssetDao) GetPage(addr common.Address, start, stop int) ([]*types.Ass
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, stop)
+	rows, err := stmt.Query(addr.Hex(), start, start + limit)
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +101,8 @@ func (dao *AssetDao) GetPage(addr common.Address, start, stop int) ([]*types.Ass
 	return dao.buildAssetBatch(rows)
 }
 
-func (dao *AssetDao) GetPageWithTotal(addr common.Address, start, stop int) ([]*types.Asset, int, error) {
-	if (addr == (common.Address{}))  || (start < 0) || (stop <= 0) {
+func (dao *AssetDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*types.Asset, int, error) {
+	if (addr == (common.Address{}))  || (start < 0) || (limit <= 0) {
 		log.Errorf("get asset by page.addr is common.address{} or start < 0 or stop <= 0")
 		return nil, -1, ErrArgInvalid
 	}
@@ -115,7 +115,7 @@ func (dao *AssetDao) GetPageWithTotal(addr common.Address, start, stop int) ([]*
 		return nil, -1, err
 	}
 
-	assets, err := dao.GetPage(addr, start, stop)
+	assets, err := dao.GetPage(addr, start, limit)
 	if err != nil{
 		return nil, -1, err
 	}else{

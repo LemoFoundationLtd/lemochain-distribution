@@ -57,7 +57,6 @@ func (dao *AccountDao) Get(addr common.Address) (*types.AccountData, error) {
 	}
 
 	if val == nil{
-		// log.Errorf("get account.is not exist.addr: " + addr.Hex())
 		return nil, ErrNotExist
 	}
 

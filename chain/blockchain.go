@@ -32,13 +32,18 @@ type BlockChain struct {
 func NewBlockChain(chainID uint16, db db.ChainDB) (bc *BlockChain, err error) {
 	bc = &BlockChain{
 		chainID:        chainID,
-		// db:             db,
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
 	}
+
 	bc.dbEngine = database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
+
+	if err := bc.loadGenesis(); err != nil{
+		return nil, err
+	}
+
 	return bc, nil
 }
 
@@ -49,6 +54,22 @@ func NewBlockChain(chainID uint16, db db.ChainDB) (bc *BlockChain, err error) {
 // Lock call by miner
 func (bc *BlockChain) Lock() *sync.Mutex {
 	return &bc.mux
+}
+
+func (bc *BlockChain) loadGenesis() error {
+	blockDao := database.NewBlockDao(bc.dbEngine)
+	block, err := blockDao.GetBlockByHeight(0)
+	if err == database.ErrNotExist{
+		return nil
+	}
+
+	if err != nil{
+		log.Errorf("get genesis err: " + err.Error())
+		return err
+	}else{
+		bc.genesisBlock = block
+		return nil
+	}
 }
 
 // loadLastState load latest state in starting

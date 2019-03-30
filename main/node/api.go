@@ -15,6 +15,9 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
 	"math/big"
 	"time"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
+	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"github.com/LemoFoundationLtd/lemochain-core/store"
 )
 
 const (
@@ -53,62 +56,56 @@ func NewPublicAccountAPI(m *account.Manager) *PublicAccountAPI {
 
 // GetBalance get balance in mo
 func (a *PublicAccountAPI) GetBalance(LemoAddress string) (string, error) {
-	accounts, err := a.GetAccount(LemoAddress)
+	account, err := a.GetAccount(LemoAddress)
 	if err != nil {
 		return "", err
 	}
-	balance := accounts.GetBalance().String()
+	balance := account.Balance.String()
 
 	return balance, nil
 }
 
 // GetAccount return the struct of the &AccountData{}
-func (a *PublicAccountAPI) GetAccount(LemoAddress string) (types.AccountAccessor, error) {
+func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, error) {
 	address, err := common.StringToAddress(LemoAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	accountData := a.manager.GetCanonicalAccount(address)
-	// accountData := a.manager.GetAccount(address)
-	return accountData, nil
-}
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
 
-// GetVoteFor
-func (a *PublicAccountAPI) GetVoteFor(LemoAddress string) (string, error) {
-	candiAccount, err := a.GetAccount(LemoAddress)
-	if err != nil {
-		return "", err
-	}
-	forAddress := candiAccount.GetVoteFor().String()
-	return forAddress, nil
+	accountDao := database.NewAccountDao(dbEngine)
+	return accountDao.Get(address)
 }
 
 // GetAllRewardValue get the value for each bonus
 func (a *PublicAccountAPI) GetAllRewardValue() ([]*coreParams.Reward, error) {
-	address := coreParams.TermRewardPrecompiledContractAddress
-	acc, err := a.GetAccount(address.String())
-	if err != nil {
-		return nil, err
-	}
-	key := address.Hash()
-	value, err := acc.GetStorageState(key)
-	rewardMap := make(coreParams.RewardsMap)
-	json.Unmarshal(value, &rewardMap)
-	var result = make([]*coreParams.Reward, 0)
-	for _, v := range rewardMap {
-		result = append(result, v)
-	}
-	return result, nil
+	// address := coreParams.TermRewardPrecompiledContractAddress
+	// acc, err := a.GetAccount(address.String())
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// key := address.Hash()
+	// value, err := acc.GetStorageState(key)
+	// rewardMap := make(coreParams.RewardsMap)
+	// json.Unmarshal(value, &rewardMap)
+	// var result = make([]*coreParams.Reward, 0)
+	// for _, v := range rewardMap {
+	// 	result = append(result, v)
+	// }
+	// return result, nil
+	return nil, nil
 }
 
 // GetAssetEquity returns asset equity
 func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId common.Hash) (*types.AssetEquity, error) {
-	acc, err := a.GetAccount(LemoAddress)
+	_, err := a.GetAccount(LemoAddress)
 	if err != nil {
 		return nil, err
 	}
-	return acc.GetEquityState(assetId)
+	// return acc.GetEquityState(assetId)
+	return nil, nil
 }
 
 //go:generate gencodec -type CandidateInfo -out gen_candidate_info_json.go
@@ -139,95 +136,111 @@ type candidateListResMarshaling struct {
 
 // GetDeputyNodeList
 func (c *PublicChainAPI) GetDeputyNodeList() []string {
-	return deputynode.Instance().GetLatestDeputies(c.chain.CurrentBlock().Height())
+	result := deputynode.Instance().GetLatestDeputies(c.chain.CurrentBlock().Height())
+	return result
 }
 
 //
 // // GetCandidateNodeList get all candidate node list information and return total candidate node
-// func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
-// 	addresses, total, err := c.chain.Db().GetCandidatesPage(index, size)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	candidateList := make([]*CandidateInfo, 0, len(addresses))
-// 	for i := 0; i < len(addresses); i++ {
-// 		candidateAccount := c.chain.AccountManager().GetAccount(addresses[i])
-// 		mapProfile := candidateAccount.GetCandidate()
-// 		if isCandidate, ok := mapProfile[types.CandidateKeyIsCandidate]; !ok || isCandidate == coreParams.NotCandidateNode {
-// 			err = fmt.Errorf("the node of %s is not candidate node", addresses[i].String())
-// 			return nil, err
-// 		}
-//
-// 		candidateInfo := &CandidateInfo{
-// 			Profile: make(map[string]string),
-// 		}
-//
-// 		candidateInfo.Profile = mapProfile
-// 		candidateInfo.Votes = candidateAccount.GetVotes().String()
-// 		candidateInfo.CandidateAddress = addresses[i].String()
-//
-// 		candidateList = append(candidateList, candidateInfo)
-// 	}
-// 	result := &CandidateListRes{
-// 		CandidateList: candidateList,
-// 		Total:         total,
-// 	}
-// 	return result, nil
-// }
+func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	candidateDao := database.NewCandidateDao(dbEngine)
+	candidates, total, err := candidateDao.GetPageWithTotal(index, size)
+	if err != nil{
+		return nil, err
+	}
+
+	accountDao := database.NewAccountDao(dbEngine)
+	result := make([]*CandidateInfo, len(candidates))
+	for index := 0; index < len(candidates); index++{
+		account, err := accountDao.Get(candidates[index].User)
+		if err != nil{
+			return nil, err
+		}
+
+		result[index] = &CandidateInfo{
+			Votes:candidates[index].Votes.String(),
+			Profile:account.Candidate.Profile,
+			CandidateAddress:candidates[index].User.String(),
+		}
+	}
+
+	return &CandidateListRes{
+		CandidateList:result,
+		Total:uint32(total),
+	}, nil
+}
 
 // GetCandidateTop30 get top 30 candidate node
 func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
-	// latestStableBlock := c.chain.StableBlock()
-	// stableBlockHash := latestStableBlock.Hash()
-	// storeInfos := c.chain.Db().GetCandidatesTop(stableBlockHash)
-	// candidateList := make([]*CandidateInfo, 0, 30)
-	// for _, info := range storeInfos {
-	// 	candidateInfo := &CandidateInfo{
-	// 		Profile: make(map[string]string),
-	// 	}
-	// 	CandidateAddress := info.GetAddress()
-	// 	CandidateAccount := c.chain.AccountManager().GetAccount(CandidateAddress)
-	// 	profile := CandidateAccount.GetCandidate()
-	// 	candidateInfo.Profile = profile
-	// 	candidateInfo.CandidateAddress = CandidateAddress.String()
-	// 	candidateInfo.Votes = info.GetTotal().String()
-	// 	candidateList = append(candidateList, candidateInfo)
-	// }
-	// return candidateList
-	return nil
+	result := make([]*CandidateInfo, 0)
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	candidateDao := database.NewCandidateDao(dbEngine)
+	candidateItems, err := candidateDao.GetTop(20)
+	if err != nil{
+		return result
+	}
+
+	accountDao := database.NewAccountDao(dbEngine)
+	for _, info := range candidateItems {
+		account, err := accountDao.Get(info.User)
+		if err != nil{
+			return result
+		}
+
+		result = append(result, &CandidateInfo{
+			Votes:account.Candidate.Votes.String(),
+			Profile:account.Candidate.Profile,
+			CandidateAddress:account.Address.String(),
+		})
+	}
+	return result
 }
 
 // GetBlockByNumber get block information by height
 func (c *PublicChainAPI) GetBlockByHeight(height uint32, withBody bool) *types.Block {
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	blockDao := database.NewBlockDao(dbEngine)
+	block, err := blockDao.GetBlockByHeight(height)
+	if err != nil{
+		log.Errorf("get block by height.err: " + err.Error())
+		return nil
+	}
+
 	if withBody {
-		return c.chain.GetBlockByHeight(height)
+		return block
 	} else {
-		block := c.chain.GetBlockByHeight(height)
-		if block == nil {
-			return nil
-		}
-		// copy only header
-		onlyHeaderBlock := &types.Block{
+		return &types.Block{
 			Header: block.Header,
 		}
-		return onlyHeaderBlock
 	}
 }
 
 // GetBlockByHash get block information by hash
 func (c *PublicChainAPI) GetBlockByHash(hash string, withBody bool) *types.Block {
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	blockDao := database.NewBlockDao(dbEngine)
+	block, err := blockDao.GetBlock(common.HexToHash(hash))
+	if err != nil{
+		log.Errorf("get block by hash.err: " + err.Error())
+		return nil
+	}
+
 	if withBody {
-		return c.chain.GetBlockByHash(common.HexToHash(hash))
+		return block
 	} else {
-		block := c.chain.GetBlockByHash(common.HexToHash(hash))
-		if block == nil {
-			return nil
-		}
-		// copy only header
-		onlyHeaderBlock := &types.Block{
+		return &types.Block{
 			Header: block.Header,
 		}
-		return onlyHeaderBlock
 	}
 }
 
@@ -243,48 +256,23 @@ func (c *PublicChainAPI) Genesis() *types.Block {
 
 // CurrentBlock get the current latest block
 func (c *PublicChainAPI) CurrentBlock(withBody bool) *types.Block {
-	if withBody {
-		return c.chain.CurrentBlock()
-	} else {
-		currentBlock := c.chain.CurrentBlock()
-		if currentBlock == nil {
-			return nil
-		}
-		// copy only header
-		onlyHeaderBlock := &types.Block{
-			Header: currentBlock.Header,
-		}
-		return onlyHeaderBlock
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	contextDao := database.NewContextDao(dbEngine)
+	block, err := contextDao.GetCurrentBlock()
+	if err != nil{
+		log.Errorf("get current block. err: " + err.Error())
+		return nil
 	}
-}
 
-// LatestStableBlock get the latest currently agreed blocks
-func (c *PublicChainAPI) LatestStableBlock(withBody bool) *types.Block {
 	if withBody {
-		return c.chain.StableBlock()
+		return block
 	} else {
-		stableBlock := c.chain.StableBlock()
-		if stableBlock == nil {
-			return nil
+		return &types.Block{
+			Header: block.Header,
 		}
-		// copy only header
-		onlyHeaderBlock := &types.Block{
-			Header: stableBlock.Header,
-		}
-		return onlyHeaderBlock
 	}
-}
-
-// CurrentHeight
-func (c *PublicChainAPI) CurrentHeight() uint32 {
-	currentBlock := c.chain.CurrentBlock()
-	height := currentBlock.Height()
-	return height
-}
-
-// LatestStableHeight
-func (c *PublicChainAPI) LatestStableHeight() uint32 {
-	return c.chain.StableBlock().Height()
 }
 
 // GasPriceAdvice get suggest gas price
@@ -495,12 +483,25 @@ func AvailableTx(tx *types.Transaction) error {
 // }
 
 // // GetTxByHash pull the specified transaction through a transaction hash
-// func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error) {
-// 	txHash := common.HexToHash(hash)
-// 	bizDb := t.node.db.GetBizDatabase()
-// 	vTxDetail, err := bizDb.GetTxByHash(txHash)
-// 	return vTxDetail, err
-// }
+func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error) {
+	txHash := common.HexToHash(hash)
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	txDao := database.NewTxDao(dbEngine)
+	tx, err := txDao.Get(txHash)
+	if err != nil{
+		return nil, err
+	}else{
+		return &store.VTransactionDetail{
+			BlockHash: tx.BHash,
+			Height: 0,
+			Tx:tx.Tx,
+			St:0,
+		}, nil
+	}
+}
 //
 // //go:generate gencodec -type TxListRes --field-override txListResMarshaling -out gen_tx_list_res_json.go
 // type TxListRes struct {
