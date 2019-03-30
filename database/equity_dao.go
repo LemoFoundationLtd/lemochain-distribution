@@ -115,6 +115,66 @@ func (dao *EquityDao) GetPageWithTotal(addr common.Address, start, limit int) ([
 	}
 }
 
+func (dao *EquityDao) GetPageByCode(addr common.Address, code common.Hash, start, limit int) ([]*types.AssetEquity, error){
+	if addr == (common.Address{}) || code == (common.Hash{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get equity by code with total.addr is common.address{} or code == common.hash{} or start < 0 or limit <= 0")
+		return nil, ErrArgInvalid
+	}
+
+	sql := "SELECT code, id, equity, utc_st FROM t_equity WHERE addr = ? AND code = ? ORDER BY utc_st LIMIT ?, ?"
+	stmt, err := dao.engine.Prepare(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(addr.Hex(), code.Hex(), start, start + limit)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*types.AssetEquity, 0)
+	for rows.Next() {
+		var code string
+		var id string
+		var equity int64
+		var utcSt int64
+		err := rows.Scan(&code, &id, &equity, &utcSt)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, &types.AssetEquity{
+			AssetCode:common.HexToHash(code),
+			AssetId:common.HexToHash(id),
+			Equity:new(big.Int).SetInt64(equity),
+		})
+	}
+
+	return result, nil
+}
+
+func (dao *EquityDao) GetPageByCodeWithTotal(addr common.Address, code common.Hash, start, limit int) ([]*types.AssetEquity, int, error) {
+	if addr == (common.Address{}) || code == (common.Hash{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get equity by code with total.addr is common.address{} or code == common.hash{} or start < 0 or limit <= 0")
+		return nil, -1, ErrArgInvalid
+	}
+
+	sql := "SELECT count(*) as cnt FROM t_equity WHERE addr = ?"
+	row := dao.engine.QueryRow(sql, addr.Hex())
+	var cnt int
+	err := row.Scan(&cnt)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	result, err := dao.GetPageByCode(addr, code, start, limit)
+	if err != nil{
+		return nil, -1, err
+	}else{
+		return result, cnt, nil
+	}
+}
+
 func (dao *EquityDao) query(addr common.Address, id common.Hash) (*types.AssetEquity, int, error) {
 	sql := "SELECT code, equity, version FROM t_equity WHERE id = ? AND addr = ?"
 	row := dao.engine.QueryRow(sql, id.Hex(), addr.Hex())

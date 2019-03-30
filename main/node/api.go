@@ -100,12 +100,80 @@ func (a *PublicAccountAPI) GetAllRewardValue() ([]*coreParams.Reward, error) {
 
 // GetAssetEquity returns asset equity
 func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId common.Hash) (*types.AssetEquity, error) {
-	_, err := a.GetAccount(LemoAddress)
+	address, err := common.StringToAddress(LemoAddress)
 	if err != nil {
 		return nil, err
 	}
-	// return acc.GetEquityState(assetId)
-	return nil, nil
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	equityDao := database.NewEquityDao(dbEngine)
+	return equityDao.Get(address, assetId)
+}
+
+//go:generate gencodec -type AssetEquityBatchRsp -out gen_asset_equity_rsp_json.go
+type AssetEquityBatchRsp struct {
+	Equities []*types.AssetEquity `json:"equities" gencodec:"required"`
+	Total    uint32               `json:"total" gencodec:"required"`
+}
+
+func (a *PublicAccountAPI) GetAssetEquityByAssetCode(LemoAddress string, assetCode common.Hash, index, limit int) (*AssetEquityBatchRsp, error) {
+	address, err := common.StringToAddress(LemoAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	equityDao := database.NewEquityDao(dbEngine)
+	result, total, err := equityDao.GetPageByCodeWithTotal(address, assetCode, index, limit)
+	if err != nil{
+		return nil, err
+	}else{
+		return &AssetEquityBatchRsp{
+			Equities: result,
+			Total:uint32(total),
+		}, nil
+	}
+}
+
+func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int)(*AssetEquityBatchRsp, error) {
+	address, err := common.StringToAddress(LemoAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	equityDao := database.NewEquityDao(dbEngine)
+	result, total, err := equityDao.GetPageWithTotal(address, index, limit)
+	if err != nil{
+		return nil, err
+	}else{
+		return &AssetEquityBatchRsp{
+			Equities: result,
+			Total:uint32(total),
+		}, nil
+	}
+}
+
+func (a *PublicAccountAPI) GetAsset(assetCode common.Hash)(*types.Asset, error){
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	assetDao := database.NewAssetDao(dbEngine)
+	return assetDao.Get(assetCode)
+}
+
+func (a *PublicAccountAPI) GetMateData(assetId common.Hash)(*database.MateData, error) {
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	mateDataDao := database.NewMateDataDao(dbEngine)
+	return mateDataDao.Get(assetId)
 }
 
 //go:generate gencodec -type CandidateInfo -out gen_candidate_info_json.go
@@ -512,6 +580,7 @@ type TxListRes struct {
 type txListResMarshaling struct {
 	Total hexutil.Uint32
 }
+
 //
 // // GetTxListByAddress pull the list of transactions
 func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int) (*TxListRes, error) {
@@ -523,7 +592,6 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
 	defer dbEngine.Close()
 
-
 	txDao := database.NewTxDao(dbEngine)
 	txes, total, err := txDao.GetByAddrWithTotal(src, index, size)
 	if err != nil {
@@ -531,10 +599,39 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 	}
 
 	result := make([]*store.VTransaction, len(txes))
-	for index := 0; index < len(txes); index++{
+	for index := 0; index < len(txes); index++ {
 		result[index] = &store.VTransaction{
-			Tx:        txes[index].Tx,
-			St:        txes[index].St,
+			Tx: txes[index].Tx,
+			St: txes[index].St,
+		}
+	}
+
+	return &TxListRes{
+		VTransactions: result,
+		Total:         uint32(total),
+	}, nil
+}
+
+func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, endTime int64, index int, size int)(*TxListRes, error){
+	src, err := common.StringToAddress(lemoAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	defer dbEngine.Close()
+
+	txDao := database.NewTxDao(dbEngine)
+	txes, total, err := txDao.GetByTimeWithTotal(src, beginTime, endTime, index, size)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*store.VTransaction, len(txes))
+	for index := 0; index < len(txes); index++ {
+		result[index] = &store.VTransaction{
+			Tx: txes[index].Tx,
+			St: txes[index].St,
 		}
 	}
 
