@@ -11,10 +11,6 @@ import (
 	"time"
 )
 
-const (
-	ReconnectNode = "reconnectNode"
-)
-
 type DialManager struct {
 	coreNodeID       *p2p.NodeID
 	coreNodeEndpoint string
@@ -30,16 +26,16 @@ func NewDialManager(coreNodeID *p2p.NodeID, coreNodeEndpoint string) *DialManage
 // Dial run dial
 func (dm *DialManager) Dial() {
 	// dial
-	conn, err := net.DialTimeout("tcp", dm.coreNodeEndpoint, 3*time.Second)
+	conn, err := net.DialTimeout("tcp", dm.coreNodeEndpoint, 5*time.Second)
 	if err != nil {
 		log.Warnf("dial node error: %s", err.Error())
-		time.Sleep(3 * time.Second)
-		subscribe.Send(ReconnectNode, struct{}{})
+		SetConnectResult(false)
 		return
 	}
+
 	// handle connection
 	if err = dm.handleConn(conn); err != nil {
-		subscribe.Send(ReconnectNode, struct{}{})
+		log.Debugf("handle connection error: %s", err)
 		return
 	}
 }
@@ -50,6 +46,7 @@ func (dm *DialManager) handleConn(fd net.Conn) error {
 	if err := p.DoHandshake(deputynode.GetSelfNodeKey(), dm.coreNodeID); err != nil {
 		if err = fd.Close(); err != nil {
 			log.Errorf("close connection failed: %v", err)
+			SetConnectResult(false)
 		}
 		return err
 	}
@@ -62,7 +59,6 @@ func (dm *DialManager) handleConn(fd net.Conn) error {
 		}
 		return p2p.ErrConnectSelf
 	}
-	go dm.runPeer(p)
 	subscribe.Send(subscribe.AddNewPeer, p)
 	return nil
 }
@@ -72,6 +68,6 @@ func (dm *DialManager) runPeer(p p2p.IPeer) {
 	if err := p.Run(); err != nil { // block this
 		log.Debugf("runPeer error: %v", err)
 	}
-	subscribe.Send(ReconnectNode, struct{}{})
+	SetConnectResult(false)
 	log.Debugf("peer Run finished: %s", common.ToHex(p.RNodeID()[:8]))
 }

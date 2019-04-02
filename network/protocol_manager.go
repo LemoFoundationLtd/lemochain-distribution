@@ -10,46 +10,46 @@ import (
 	coreNetwork "github.com/LemoFoundationLtd/lemochain-core/network"
 	"github.com/LemoFoundationLtd/lemochain-core/network/p2p"
 	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
+	"strconv"
 	"sync"
 	"time"
 )
 
 const (
 	ForceSyncInterval = 10 * time.Second
+	ReconnectInterval = 5 * time.Second
 )
 
 type ProtocolManager struct {
-	chainID         uint16
-	nodeVersion     uint32
-	chain           coreNetwork.BlockChain
-	genesisHash     common.Hash
-	blockCache      *coreNetwork.BlockCache
-	txCh            chan *types.Transaction
-	rcvBlocksCh     chan types.Blocks
-	corePeer        *peer
-	dialManager     *DialManager
-	isStopping      bool
-	newPeerCh       chan p2p.IPeer
-	reconnectPeerCh chan struct{}
-	dialCh          chan struct{}
-	forceSyncTimer  *time.Timer
-	wg              sync.WaitGroup
-	quitCh          chan struct{}
+	chainID        uint16
+	nodeVersion    uint32
+	chain          coreNetwork.BlockChain
+	genesisHash    common.Hash
+	blockCache     *coreNetwork.BlockCache
+	txCh           chan *types.Transaction
+	rcvBlocksCh    chan types.Blocks
+	corePeer       *peer
+	dialManager    *DialManager
+	isStopping     bool
+	newPeerCh      chan p2p.IPeer
+	dialCh         chan struct{}
+	forceSyncTimer *time.Timer
+	wg             sync.WaitGroup
+	quitCh         chan struct{}
 }
 
 func NewProtocolManager(chainID uint16, hash common.Hash, coreNodeID *p2p.NodeID, coreNodeEndpoint string, chain coreNetwork.BlockChain) *ProtocolManager {
 	pm := &ProtocolManager{
-		chainID:         chainID,
-		nodeVersion:     params.VersionUint(),
-		chain:           chain,
-		genesisHash:     hash,
-		dialManager:     NewDialManager(coreNodeID, coreNodeEndpoint),
-		blockCache:      coreNetwork.NewBlockCache(),
-		rcvBlocksCh:     make(chan types.Blocks),
-		newPeerCh:       make(chan p2p.IPeer),
-		reconnectPeerCh: make(chan struct{}),
-		dialCh:          make(chan struct{}),
-		quitCh:          make(chan struct{}),
+		chainID:     chainID,
+		nodeVersion: params.VersionUint(),
+		chain:       chain,
+		genesisHash: hash,
+		dialManager: NewDialManager(coreNodeID, coreNodeEndpoint),
+		blockCache:  coreNetwork.NewBlockCache(),
+		rcvBlocksCh: make(chan types.Blocks),
+		newPeerCh:   make(chan p2p.IPeer),
+		dialCh:      make(chan struct{}),
+		quitCh:      make(chan struct{}),
 	}
 	pm.sub()
 	return pm
@@ -58,14 +58,12 @@ func NewProtocolManager(chainID uint16, hash common.Hash, coreNodeID *p2p.NodeID
 // sub subscribe channel
 func (pm *ProtocolManager) sub() {
 	subscribe.Sub(subscribe.AddNewPeer, pm.newPeerCh)
-	subscribe.Sub(ReconnectNode, pm.reconnectPeerCh)
 	subscribe.Sub(subscribe.NewTx, pm.txCh)
 }
 
 // unSub unsubscribe channel
 func (pm *ProtocolManager) unSub() {
 	subscribe.UnSub(subscribe.AddNewPeer, pm.newPeerCh)
-	subscribe.UnSub(ReconnectNode, pm.reconnectPeerCh)
 	subscribe.UnSub(subscribe.NewTx, pm.txCh)
 }
 
@@ -108,12 +106,21 @@ func (pm *ProtocolManager) stopCoreNode() {
 
 // resetDialTask reset dial task
 func (pm *ProtocolManager) resetDialTask() {
-	pm.corePeer = nil
-	if !pm.isStopping {
-		time.AfterFunc(5*time.Second, func() {
-			pm.dialCh <- struct{}{}
-		})
+	if !pm.isStopping && needReconnect {
+		log.Debug("start reconnect...")
+		pm.corePeer = nil
+		pm.dialCh <- struct{}{}
 	}
+}
+
+var needReconnect bool // need reconnect == true
+var m sync.Mutex
+
+func SetConnectResult(success bool) {
+	m.Lock()
+	needReconnect = !success
+	m.Unlock()
+	log.Debugf("need reconnect: %s", strconv.FormatBool(!success))
 }
 
 // dialLoop
@@ -123,6 +130,8 @@ func (pm *ProtocolManager) dialLoop() {
 		pm.wg.Done()
 		log.Debugf("dialLoop finished")
 	}()
+	reconnectTicker := time.NewTicker(ReconnectInterval)
+
 	for {
 		select {
 		case <-pm.quitCh:
@@ -130,14 +139,12 @@ func (pm *ProtocolManager) dialLoop() {
 		case <-pm.dialCh:
 			go pm.dialManager.Dial()
 		case p := <-pm.newPeerCh:
-			if pm.corePeer != nil {
-				break
-			}
 			log.Debugf("recv connection")
 			pm.corePeer = newPeer(p)
+			go pm.dialManager.runPeer(p)
 			go pm.handlePeer()
-		case <-pm.reconnectPeerCh:
-			pm.resetDialTask()
+		case <-reconnectTicker.C:
+			go pm.resetDialTask()
 		}
 	}
 }
@@ -269,7 +276,8 @@ func (pm *ProtocolManager) handlePeer() {
 	rStatus, err := pm.handshake(p)
 	if err != nil {
 		log.Warnf("protocol handshake failed: %v", err)
-		pm.resetDialTask()
+		pm.corePeer.conn.Close()
+		SetConnectResult(false)
 		return
 	}
 	curHeight := uint32(0)
@@ -288,11 +296,14 @@ func (pm *ProtocolManager) handlePeer() {
 	}
 	log.Debugf("start handle msg")
 
+	SetConnectResult(true)
+
 	for {
 		// handle peer net message
 		if err := pm.handleMsg(p); err != nil {
 			log.Debugf("handle message failed: %v", err)
-			pm.resetDialTask()
+			pm.corePeer.conn.Close()
+			SetConnectResult(false)
 			return
 		}
 	}
