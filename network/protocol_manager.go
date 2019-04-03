@@ -57,14 +57,14 @@ func NewProtocolManager(chainID uint16, hash common.Hash, coreNodeID *p2p.NodeID
 
 // sub subscribe channel
 func (pm *ProtocolManager) sub() {
-	subscribe.Sub(subscribe.AddNewPeer, pm.newPeerCh)
-	subscribe.Sub(subscribe.NewTx, pm.txCh)
+	subscribe.Sub(AddNewCorePeer, pm.newPeerCh)
+	subscribe.Sub(GetNewTx, pm.txCh)
 }
 
 // unSub unsubscribe channel
 func (pm *ProtocolManager) unSub() {
-	subscribe.UnSub(subscribe.AddNewPeer, pm.newPeerCh)
-	subscribe.UnSub(subscribe.NewTx, pm.txCh)
+	subscribe.UnSub(AddNewCorePeer, pm.newPeerCh)
+	subscribe.UnSub(GetNewTx, pm.txCh)
 }
 
 // Start

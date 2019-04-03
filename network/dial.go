@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+const (
+	AddNewCorePeer = "addNewCorePeer"
+	GetNewTx       = "getNewTx"
+)
+
 type DialManager struct {
 	coreNodeID       *p2p.NodeID
 	coreNodeEndpoint string
