@@ -131,7 +131,7 @@ func (pm *ProtocolManager) dialLoop() {
 		log.Debugf("dialLoop finished")
 	}()
 	reconnectTicker := time.NewTicker(ReconnectInterval)
-
+	defer reconnectTicker.Stop()
 	for {
 		select {
 		case <-pm.quitCh:
