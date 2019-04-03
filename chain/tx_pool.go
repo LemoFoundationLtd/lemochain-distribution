@@ -4,6 +4,7 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	"github.com/LemoFoundationLtd/lemochain-core/common/subscribe"
+	"github.com/LemoFoundationLtd/lemochain-distribution/network"
 )
 
 // TxPool add filter in future
@@ -20,7 +21,7 @@ func (tp *TxPool) AddTx(tx *types.Transaction) error {
 		log.Error("transaction is invalid: %v", err)
 		return err
 	}
-	subscribe.Send(subscribe.NewTx, tx)
+	subscribe.Send(network.GetNewTx, tx)
 	return nil
 }
 
