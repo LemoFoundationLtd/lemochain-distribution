@@ -106,7 +106,7 @@ func (pm *ProtocolManager) stopCoreNode() {
 
 // resetDialTask reset dial task
 func (pm *ProtocolManager) resetDialTask() {
-	if !pm.isStopping && needReconnect {
+	if !pm.isStopping && GetConnectResult() {
 		log.Debug("start reconnect...")
 		pm.corePeer = nil
 		pm.dialCh <- struct{}{}
@@ -116,6 +116,12 @@ func (pm *ProtocolManager) resetDialTask() {
 var needReconnect bool // need reconnect == true
 var m sync.Mutex
 
+func GetConnectResult() bool {
+	m.Lock()
+	defer m.Unlock()
+	ok := needReconnect
+	return ok
+}
 func SetConnectResult(success bool) {
 	m.Lock()
 	needReconnect = !success
