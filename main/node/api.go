@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
-	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -202,9 +201,14 @@ type candidateListResMarshaling struct {
 	Total hexutil.Uint32
 }
 
-// GetDeputyNodeList
+// GetDeputyNodeList get deputy nodes who are in charge
 func (c *PublicChainAPI) GetDeputyNodeList() []string {
-	result := deputynode.Instance().GetLatestDeputies(c.chain.CurrentBlock().Height())
+	nodes := c.chain.DeputyManager().GetDeputiesByHeight(c.chain.CurrentBlock().Height())
+
+	var result []string
+	for _, n := range nodes {
+		result = append(result, n.NodeAddrString())
+	}
 	return result
 }
 

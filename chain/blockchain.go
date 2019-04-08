@@ -3,7 +3,6 @@ package chain
 import (
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
-	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
@@ -18,6 +17,7 @@ type BlockChain struct {
 	chainID uint16
 	// db           db.ChainDB
 	// am           *account.Manager
+	dm           *deputynode.Manager
 	currentBlock atomic.Value // latest block in current chain
 	stableBlock  atomic.Value // latest stable block in current chain
 	genesisBlock *types.Block // genesis block
@@ -29,9 +29,10 @@ type BlockChain struct {
 	dbEngine       database.DBEngine
 }
 
-func NewBlockChain(chainID uint16, db db.ChainDB) (bc *BlockChain, err error) {
+func NewBlockChain(chainID uint16, dm *deputynode.Manager, db db.ChainDB) (bc *BlockChain, err error) {
 	bc = &BlockChain{
 		chainID:        chainID,
+		dm:             dm,
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
 	}
 
@@ -50,6 +51,10 @@ func NewBlockChain(chainID uint16, db db.ChainDB) (bc *BlockChain, err error) {
 // func (bc *BlockChain) AccountManager() *account.Manager {
 // 	return bc.am
 // }
+
+func (bc *BlockChain) DeputyManager() *deputynode.Manager {
+	return bc.dm
+}
 
 // Lock call by miner
 func (bc *BlockChain) Lock() *sync.Mutex {
@@ -175,13 +180,8 @@ func (bc *BlockChain) StableBlock() *types.Block {
 
 // updateDeputyNodes update deputy nodes map
 func (bc *BlockChain) updateDeputyNodes(block *types.Block) {
-	if block.Height() == 0 {
-		deputynode.Instance().Add(0, block.DeputyNodes)
-		log.Debugf("add genesis block deputy nodes: %v", block.DeputyNodes)
-	} else if block.Height()%params.TermDuration == 0 {
-		deputynode.Instance().Add(block.Height()+params.InterimDuration+1, block.DeputyNodes)
-		log.Debugf("add new term deputy nodes: %v", block.DeputyNodes)
-	}
+	bc.dm.SaveSnapshot(block.Height(), block.DeputyNodes)
+	log.Debugf("save new term deputy nodes: %v", block.DeputyNodes)
 }
 
 func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) error {
