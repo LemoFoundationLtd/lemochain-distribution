@@ -3,6 +3,7 @@ package chain
 import (
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
@@ -180,8 +181,10 @@ func (bc *BlockChain) StableBlock() *types.Block {
 
 // updateDeputyNodes update deputy nodes map
 func (bc *BlockChain) updateDeputyNodes(block *types.Block) {
-	bc.dm.SaveSnapshot(block.Height(), block.DeputyNodes)
-	log.Debugf("save new term deputy nodes: %v", block.DeputyNodes)
+	if block.Height()%params.TermDuration == 0 {
+		bc.dm.SaveSnapshot(block.Height(), block.DeputyNodes)
+		log.Debugf("save new term deputy nodes: %v", block.DeputyNodes)
+	}
 }
 
 func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) error {
