@@ -40,6 +40,9 @@ func (dm *DialManager) Dial() {
 
 	// handle connection
 	if err = dm.handleConn(conn); err != nil {
+		if err != p2p.ErrConnectSelf {
+			SetConnectResult(false)
+		}
 		log.Debugf("handle connection error: %s", err)
 		return
 	}
@@ -51,7 +54,6 @@ func (dm *DialManager) handleConn(fd net.Conn) error {
 	if err := p.DoHandshake(deputynode.GetSelfNodeKey(), dm.coreNodeID); err != nil {
 		if err = fd.Close(); err != nil {
 			log.Errorf("close connection failed: %v", err)
-			SetConnectResult(false)
 		}
 		return err
 	}
