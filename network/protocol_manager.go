@@ -147,7 +147,6 @@ func (pm *ProtocolManager) dialLoop() {
 		case p := <-pm.newPeerCh:
 			log.Debugf("recv connection")
 			pm.corePeer = newPeer(p)
-			go pm.dialManager.runPeer(p)
 			go pm.handlePeer()
 		case <-reconnectTicker.C:
 			go pm.resetDialTask()
@@ -255,6 +254,7 @@ func (pm *ProtocolManager) reqStatusLoop() {
 		case <-pm.quitCh:
 			return
 		case <-pm.forceSyncTimer.C:
+			log.Info("reqStatusLoop: start forceSync block")
 			if pm.corePeer != nil {
 				if pm.chain.CurrentBlock() == nil || pm.corePeer.LatestStatus().CurHeight > pm.chain.CurrentBlock().Height() {
 					sta := pm.corePeer.LatestStatus()
@@ -308,7 +308,9 @@ func (pm *ProtocolManager) handlePeer() {
 		// handle peer net message
 		if err := pm.handleMsg(p); err != nil {
 			log.Debugf("handle message failed: %v", err)
-			pm.corePeer.conn.Close()
+			if pm.corePeer != nil {
+				pm.corePeer.conn.Close()
+			}
 			SetConnectResult(false)
 			return
 		}

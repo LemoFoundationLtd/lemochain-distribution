@@ -367,7 +367,7 @@ func NewPublicTxAPI(node *Node) *PublicTxAPI {
 
 // Send send a transaction
 func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
-	err := AvailableTx(tx)
+	err := VerifyTx(tx)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -389,7 +389,7 @@ func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string,
 	if err != nil {
 		return common.Hash{}, err
 	}
-	err = AvailableTx(lastSignTx)
+	err = VerifyTx(lastSignTx)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -502,7 +502,7 @@ func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, ass
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(to, amount, uint64(500000), big.NewInt(1), data, coreParams.TradingAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
+	tx := types.NewTransaction(to, amount, uint64(500000), big.NewInt(1), data, coreParams.TransferAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
 	private, _ := crypto.HexToECDSA(prv)
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -511,8 +511,8 @@ func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, ass
 	return t.SendTx(signTx)
 }
 
-// AvailableTx transaction parameter verification
-func AvailableTx(tx *types.Transaction) error {
+// VerifyTx transaction parameter verification
+func VerifyTx(tx *types.Transaction) error {
 	toNameLength := len(tx.ToName())
 	if toNameLength > MaxTxToNameLength {
 		toNameErr := fmt.Errorf("the length of toName field in transaction is out of max length limit. toName length = %d. max length limit = %d. ", toNameLength, MaxTxToNameLength)
@@ -537,6 +537,32 @@ func AvailableTx(tx *types.Transaction) error {
 			registerTxErr := errors.New("The data of contract creation transaction can't be null ")
 
 			return registerTxErr
+		}
+	case coreParams.CreateAssetTx:
+		if len(tx.Data()) == 0 {
+			createAssetTxErr := errors.New("The data of create asset transaction can't be null ")
+			return createAssetTxErr
+		}
+
+	case coreParams.IssueAssetTx:
+		if len(tx.Data()) == 0 {
+			issueAssetTxErr := errors.New("The data of issue asset transaction can't be null ")
+			return issueAssetTxErr
+		}
+	case coreParams.ReplenishAssetTx:
+		if len(tx.Data()) == 0 {
+			replenishAssetTxErr := errors.New("The data of replenish asset transaction can't be null ")
+			return replenishAssetTxErr
+		}
+	case coreParams.ModifyAssetTx:
+		if len(tx.Data()) == 0 {
+			modifyAssetTxErr := errors.New("The data of modify asset transaction can't be null ")
+			return modifyAssetTxErr
+		}
+	case coreParams.TransferAssetTx:
+		if len(tx.Data()) == 0 {
+			transferAssetTxErr := errors.New("The data of transfer asset transaction can't be null ")
+			return transferAssetTxErr
 		}
 	default:
 		txTypeErr := fmt.Errorf("transaction type error. txType = %v", tx.Type())
