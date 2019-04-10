@@ -66,6 +66,7 @@ func (dm *DialManager) handleConn(fd net.Conn) error {
 		}
 		return p2p.ErrConnectSelf
 	}
+	// go dm.runPeer(p)
 	subscribe.Send(AddNewCorePeer, p)
 	return nil
 }

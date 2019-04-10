@@ -3,7 +3,6 @@ package node
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
@@ -23,6 +22,14 @@ import (
 const (
 	MaxTxToNameLength  = 100
 	MaxTxMessageLength = 1024
+)
+
+var (
+	toNameErr         = errors.New("the length of toName field in transaction is out of max length limit")
+	txMessageErr      = errors.New("the length of message field in transaction is out of max length limit")
+	createContractErr = errors.New("the data of create contract transaction can't be null")
+	specialTxErr      = errors.New("the data of special transaction can't be null")
+	txTypeErr         = errors.New("the transaction type does not exit")
 )
 
 // Private
@@ -515,57 +522,28 @@ func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, ass
 func VerifyTx(tx *types.Transaction) error {
 	toNameLength := len(tx.ToName())
 	if toNameLength > MaxTxToNameLength {
-		toNameErr := fmt.Errorf("the length of toName field in transaction is out of max length limit. toName length = %d. max length limit = %d. ", toNameLength, MaxTxToNameLength)
+		log.Errorf("the length of toName field in transaction is out of max length limit. toName length = %d. max length limit = %d. ", toNameLength, MaxTxToNameLength)
 		return toNameErr
 	}
 	txMessageLength := len(tx.Message())
 	if txMessageLength > MaxTxMessageLength {
-		txMessageErr := fmt.Errorf("the length of message field in transaction is out of max length limit. message length = %d. max length limit = %d. ", txMessageLength, MaxTxMessageLength)
+		log.Errorf("the length of message field in transaction is out of max length limit. message length = %d. max length limit = %d. ", txMessageLength, MaxTxMessageLength)
 		return txMessageErr
 	}
 	switch tx.Type() {
 	case coreParams.OrdinaryTx:
 		if tx.To() == nil {
 			if len(tx.Data()) == 0 {
-				createContractErr := errors.New("The data of contract creation transaction can't be null ")
 				return createContractErr
 			}
 		}
 	case coreParams.VoteTx:
-	case coreParams.RegisterTx:
+	case coreParams.RegisterTx, coreParams.CreateAssetTx, coreParams.IssueAssetTx, coreParams.ReplenishAssetTx, coreParams.ModifyAssetTx, coreParams.TransferAssetTx:
 		if len(tx.Data()) == 0 {
-			registerTxErr := errors.New("The data of contract creation transaction can't be null ")
-
-			return registerTxErr
-		}
-	case coreParams.CreateAssetTx:
-		if len(tx.Data()) == 0 {
-			createAssetTxErr := errors.New("The data of create asset transaction can't be null ")
-			return createAssetTxErr
-		}
-
-	case coreParams.IssueAssetTx:
-		if len(tx.Data()) == 0 {
-			issueAssetTxErr := errors.New("The data of issue asset transaction can't be null ")
-			return issueAssetTxErr
-		}
-	case coreParams.ReplenishAssetTx:
-		if len(tx.Data()) == 0 {
-			replenishAssetTxErr := errors.New("The data of replenish asset transaction can't be null ")
-			return replenishAssetTxErr
-		}
-	case coreParams.ModifyAssetTx:
-		if len(tx.Data()) == 0 {
-			modifyAssetTxErr := errors.New("The data of modify asset transaction can't be null ")
-			return modifyAssetTxErr
-		}
-	case coreParams.TransferAssetTx:
-		if len(tx.Data()) == 0 {
-			transferAssetTxErr := errors.New("The data of transfer asset transaction can't be null ")
-			return transferAssetTxErr
+			return specialTxErr
 		}
 	default:
-		txTypeErr := fmt.Errorf("transaction type error. txType = %v", tx.Type())
+		log.Errorf("the transaction type does not exit . type = %v", tx.Type())
 		return txTypeErr
 	}
 	return nil

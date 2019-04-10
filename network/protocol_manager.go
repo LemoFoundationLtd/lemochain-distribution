@@ -147,6 +147,7 @@ func (pm *ProtocolManager) dialLoop() {
 		case p := <-pm.newPeerCh:
 			log.Debugf("recv connection")
 			pm.corePeer = newPeer(p)
+			go pm.dialManager.runPeer(p)
 			go pm.handlePeer()
 		case <-reconnectTicker.C:
 			go pm.resetDialTask()
