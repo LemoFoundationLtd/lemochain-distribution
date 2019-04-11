@@ -9,6 +9,7 @@
 ```
 {
 	"chainID": 100,
+	"deputyCount": 17,
 	"genesisHash": "0x531d9cccfc39cdb1957a4eac21f0154eb6c192a76123ca786adebf54821d53b4",
 	"serverDataDir": "./lemo-distribution",
 	"dbUri": "root:123456@tcp(127.0.0.1:3306)/lemo02?charset=utf8mb4",
@@ -32,6 +33,7 @@
 ```
 其中：
 - chainID: 与要连接的lemochain-core一致
+- deputyCount: 与要连接的lemochain-core一致
 - genesisHash： 与要连接的lemochain-core一致
 - serverDataDir： 区块等相关数据存放目录
 - dbUri： 数据库连接字符串
