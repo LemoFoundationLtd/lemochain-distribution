@@ -46,6 +46,7 @@ func NewProtocolManager(chainID uint16, hash common.Hash, coreNodeID *p2p.NodeID
 		genesisHash: hash,
 		dialManager: NewDialManager(coreNodeID, coreNodeEndpoint),
 		blockCache:  coreNetwork.NewBlockCache(),
+		txCh:        make(chan *types.Transaction),
 		rcvBlocksCh: make(chan types.Blocks),
 		newPeerCh:   make(chan p2p.IPeer),
 		dialCh:      make(chan struct{}),
