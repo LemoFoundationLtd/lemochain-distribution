@@ -118,10 +118,14 @@ func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId c
 	return equityDao.Get(address, assetId)
 }
 
-//go:generate gencodec -type AssetEquityBatchRsp -out gen_asset_equity_rsp_json.go
+//go:generate gencodec -type AssetEquityBatchRsp --field-override AssetEquityBatchRspMarshaling -out gen_asset_equity_rsp_json.go
 type AssetEquityBatchRsp struct {
 	Equities []*types.AssetEquity `json:"equities" gencodec:"required"`
 	Total    uint32               `json:"total" gencodec:"required"`
+}
+
+type AssetEquityBatchRspMarshaling struct {
+	Total hexutil.Uint32
 }
 
 func (a *PublicAccountAPI) GetAssetEquityByAssetCode(LemoAddress string, assetCode common.Hash, index, limit int) (*AssetEquityBatchRsp, error) {

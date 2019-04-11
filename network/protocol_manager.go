@@ -201,7 +201,7 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 				break
 			}
 			// peer's latest height
-			pLstHeight := pm.corePeer.LatestStatus().CurHeight
+			pLstHeight := pm.corePeer.LatestStatus().StaHeight
 
 			for _, b := range blocks {
 				// update latest status
@@ -214,10 +214,11 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 				}
 				// local chain has this block
 				if b.Height() == 0 || pm.chain.HasBlock(b.ParentHash()) {
-					log.Debugf("will insert Block height: %d", b.Height())
+					// log.Debugf("will insert Block height: %d", b.Height())
 					pm.insertBlock(b)
 				} else {
 					pm.blockCache.Add(b)
+					log.Debugf("receive a new block (height = %d),but don't find his parentBlock.", b.Height())
 					if pm.corePeer != nil {
 						// request parent block
 						go pm.corePeer.RequestBlocks(b.Height()-1, b.Height()-1)
@@ -258,7 +259,7 @@ func (pm *ProtocolManager) reqStatusLoop() {
 		case <-pm.forceSyncTimer.C:
 			log.Info("reqStatusLoop: start forceSync block")
 			if pm.corePeer != nil {
-				if pm.chain.CurrentBlock() == nil || pm.corePeer.LatestStatus().CurHeight > pm.chain.CurrentBlock().Height() {
+				if pm.chain.CurrentBlock() == nil || pm.corePeer.LatestStatus().StaHeight > pm.chain.CurrentBlock().Height() {
 					sta := pm.corePeer.LatestStatus()
 					pm.forceSyncBlock(&sta, pm.corePeer)
 				} else {
@@ -288,20 +289,15 @@ func (pm *ProtocolManager) handlePeer() {
 		SetConnectResult(false)
 		return
 	}
-	curHeight := uint32(0)
-	// synchronise block
-	if pm.chain.CurrentBlock() != nil {
-		curHeight = pm.chain.CurrentBlock().Height()
+
+	// sync block
+	from, err := pm.findSyncFrom(&rStatus.LatestStatus)
+	if err != nil {
+		log.Warnf("find sync from error: %v", err)
+		p.HardForkClose()
+		return
 	}
-	if curHeight < rStatus.LatestStatus.StaHeight {
-		from, err := pm.findSyncFrom(&rStatus.LatestStatus)
-		if err != nil {
-			log.Warnf("find sync from error: %v", err)
-			p.HardForkClose()
-			return
-		}
-		p.RequestBlocks(from, rStatus.LatestStatus.StaHeight)
-	}
+	p.RequestBlocks(from, rStatus.LatestStatus.StaHeight)
 	log.Debugf("start handle msg")
 
 	SetConnectResult(true)
@@ -357,34 +353,24 @@ func (pm *ProtocolManager) forceSyncBlock(status *LatestStatus, p *peer) {
 		p.HardForkClose()
 		return
 	}
-	p.RequestBlocks(from, status.CurHeight)
+	p.RequestBlocks(from, status.StaHeight)
 }
 
 // findSyncFrom find height of which sync from
 func (pm *ProtocolManager) findSyncFrom(rStatus *LatestStatus) (uint32, error) {
 	var from uint32
 	curBlock := pm.chain.CurrentBlock()
-	staBlock := pm.chain.StableBlock()
+	// staBlock := pm.chain.StableBlock()
 	if curBlock == nil {
 		return 0, nil
 	}
-	if staBlock.Height() < rStatus.StaHeight {
-		if curBlock.Height() < rStatus.StaHeight {
-			from = staBlock.Height() + 1
-		} else {
-			if pm.chain.HasBlock(rStatus.StaHash) {
-				from = rStatus.StaHeight + 1
-			} else {
-				from = staBlock.Height() + 1
-			}
-		}
-	} else {
-		if pm.chain.HasBlock(rStatus.StaHash) {
-			from = staBlock.Height() + 1
-		} else {
-			return 0, errors.New("error: CHAIN FORK")
+
+	if curBlock.Height() >= rStatus.StaHeight {
+		if !pm.chain.HasBlock(rStatus.StaHash) {
+			return 0, errors.New("error: core peer not on the same chain")
 		}
 	}
+	from = curBlock.Height() + 1
 	return from, nil
 }
 

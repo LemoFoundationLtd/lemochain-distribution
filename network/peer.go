@@ -211,8 +211,8 @@ func (p *peer) UpdateStatus(height uint32, hash common.Hash) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	if p.lstStatus.CurHeight < height {
-		p.lstStatus.CurHeight = height
-		p.lstStatus.CurHash = hash
+	if p.lstStatus.StaHeight < height {
+		p.lstStatus.StaHeight = height
+		p.lstStatus.StaHash = hash
 	}
 }
