@@ -47,6 +47,8 @@ type peer struct {
 
 	lstStatus LatestStatus
 
+	firstSyncHeight uint32 // first sync height when handlePeer()
+
 	lock sync.RWMutex
 }
 
@@ -55,6 +57,21 @@ func newPeer(p p2p.IPeer) *peer {
 	return &peer{
 		conn: p,
 	}
+}
+
+// GetFirstSyncHeight
+func (p *peer) GetFirstSyncHeight() uint32 {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	height := p.firstSyncHeight
+	return height
+}
+
+// SetFirstSyncHeight
+func (p *peer) SetFirstSyncHeight(height uint32) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.firstSyncHeight = height
 }
 
 // NormalClose

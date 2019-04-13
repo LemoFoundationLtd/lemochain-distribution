@@ -180,13 +180,13 @@ func (pm *ProtocolManager) txLoop() {
 // blockLoop receive special type block event
 func (pm *ProtocolManager) rcvBlockLoop() {
 	pm.wg.Add(1)
-	defer func() {
-		pm.wg.Done()
-		log.Debugf("rcvBlockLoop finished")
-	}()
-
 	proInterval := 500 * time.Millisecond
 	queueTimer := time.NewTimer(proInterval)
+	defer func() {
+		pm.wg.Done()
+		queueTimer.Stop()
+		log.Debugf("rcvBlockLoop finished")
+	}()
 
 	for {
 		select {
@@ -204,13 +204,13 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 			pLstHeight := pm.corePeer.LatestStatus().StaHeight
 
 			for _, b := range blocks {
-				// update latest status
-				if b.Height() > pLstHeight && pm.corePeer != nil {
-					pm.corePeer.UpdateStatus(b.Height(), b.Hash())
-				}
 				// block is stale
 				if pm.chain.StableBlock() != nil && (b.Height() <= pm.chain.StableBlock().Height() || pm.chain.HasBlock(b.Hash())) {
 					continue
+				}
+				// update latest status
+				if b.Height() > pLstHeight && pm.corePeer != nil {
+					pm.corePeer.UpdateStatus(b.Height(), b.Hash())
 				}
 				// local chain has this block
 				if b.Height() == 0 || pm.chain.HasBlock(b.ParentHash()) {
@@ -218,11 +218,7 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 					pm.insertBlock(b)
 				} else {
 					pm.blockCache.Add(b)
-					log.Debugf("receive a new block (height = %d),but don't find his parentBlock.", b.Height())
-					if pm.corePeer != nil {
-						// request parent block
-						go pm.corePeer.RequestBlocks(b.Height()-1, b.Height()-1)
-					}
+					log.Debugf("receive a new block (height = %d), but don't find his parentBlock.", b.Height())
 				}
 			}
 		case <-queueTimer.C:
@@ -299,7 +295,10 @@ func (pm *ProtocolManager) handlePeer() {
 	}
 	p.RequestBlocks(from, rStatus.LatestStatus.StaHeight)
 	log.Debugf("start handle msg")
-
+	// set first sync height
+	if pm.corePeer != nil {
+		pm.corePeer.SetFirstSyncHeight(rStatus.LatestStatus.StaHeight)
+	}
 	SetConnectResult(true)
 
 	for {
@@ -441,9 +440,16 @@ func (pm *ProtocolManager) handleBlockHashMsg(msg *p2p.Msg, p *peer) error {
 	if pm.chain.HasBlock(hashMsg.Hash) {
 		return nil
 	}
+	// judge whether the init synchronization has been completed
+	firstSyncHeight := pm.corePeer.GetFirstSyncHeight()
+	if pm.chain.GetBlockByHeight(firstSyncHeight) == nil && hashMsg.Height > firstSyncHeight {
+		return nil
+	}
+
+	currentHeight := pm.chain.CurrentBlock().Height()
 	// update status
 	p.UpdateStatus(hashMsg.Height, hashMsg.Hash)
-	go p.RequestBlocks(hashMsg.Height, hashMsg.Height)
+	go p.RequestBlocks(currentHeight+1, hashMsg.Height)
 	return nil
 }
 
