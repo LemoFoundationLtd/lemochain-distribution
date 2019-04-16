@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 )
 
 type Node struct {
@@ -51,9 +52,8 @@ func initDb(dataDir string, driver string, dns string) protocol.ChainDB {
 }
 
 func New(cfg *config.Config) (*Node, error) {
-	db := initDb(cfg.DataDir, cfg.DbDriver, cfg.DbUri)
 	dm := deputynode.NewManager(int(cfg.DeputyCount))
-	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), dm, db)
+	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), dm, database.NewMySqlDB(cfg.DbDriver, cfg.DbUri))
 	if err != nil {
 		return nil, err
 	}
@@ -195,19 +195,19 @@ func (n *Node) apis() []rpc.API {
 		{
 			Namespace: "chain",
 			Version:   "1.0",
-			Service:   NewPublicChainAPI(n.chain),
+			Service:   NewPublicChainAPI(n),
 			Public:    true,
 		},
 		{
 			Namespace: "account",
 			Version:   "1.0",
-			Service:   NewPublicAccountAPI(n.accMan),
+			Service:   NewPublicAccountAPI(n),
 			Public:    true,
 		},
 		{
 			Namespace: "account",
 			Version:   "1.0",
-			Service:   NewPrivateAccountAPI(n.accMan),
+			Service:   NewPrivateAccountAPI(n),
 			Public:    false,
 		},
 		{
