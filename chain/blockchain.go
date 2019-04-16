@@ -49,6 +49,18 @@ func NewBlockChain(chainID uint16, dm *deputynode.Manager, db db.ChainDB) (bc *B
 	return bc, nil
 }
 
+// InitDeputyNodes init deputy nodes information
+func InitDeputyNodes(dm *deputynode.Manager, bc *BlockChain) {
+	for snapshotHeight := uint32(0); ; snapshotHeight += params.TermDuration {
+		block := bc.GetBlockByHeight(snapshotHeight)
+		if block == nil {
+			break
+		}
+
+		dm.SaveSnapshot(snapshotHeight, block.DeputyNodes)
+	}
+}
+
 // func (bc *BlockChain) AccountManager() *account.Manager {
 // 	return bc.am
 // }
