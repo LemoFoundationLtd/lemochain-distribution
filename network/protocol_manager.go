@@ -171,6 +171,7 @@ func (pm *ProtocolManager) txLoop() {
 			return
 		case tx := <-pm.txCh:
 			if pm.corePeer != nil {
+				log.Infof("send txs to core peer,tx: %s", tx.String())
 				go pm.corePeer.SendTxs(types.Transactions{tx})
 			}
 		}

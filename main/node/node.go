@@ -57,6 +57,7 @@ func New(cfg *config.Config) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	chain.InitDeputyNodes(dm, bc)
 	h := common.Hash{}
 	copy(h[:], cfg.GenesisHash)
 	pm := NewProtocolManager(uint16(cfg.ChainID), h, cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)

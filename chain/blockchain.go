@@ -14,7 +14,7 @@ import (
 )
 
 type BlockChain struct {
-	chainID uint16
+	chainID      uint16
 	dm           *deputynode.Manager
 	currentBlock atomic.Value // latest block in current chain
 	stableBlock  atomic.Value // latest stable block in current chain
@@ -32,7 +32,7 @@ func NewBlockChain(chainID uint16, dm *deputynode.Manager, dbEngine database.DBE
 		chainID:        chainID,
 		dm:             dm,
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
-		dbEngine: dbEngine,
+		dbEngine:       dbEngine,
 	}
 
 	if err := bc.loadLastState(); err != nil {
@@ -45,6 +45,22 @@ func NewBlockChain(chainID uint16, dm *deputynode.Manager, dbEngine database.DBE
 
 	return bc, nil
 }
+
+// InitDeputyNodes init deputy nodes information
+func InitDeputyNodes(dm *deputynode.Manager, bc *BlockChain) {
+	for snapshotHeight := uint32(0); ; snapshotHeight += params.TermDuration {
+		block := bc.GetBlockByHeight(snapshotHeight)
+		if block == nil {
+			break
+		}
+
+		dm.SaveSnapshot(snapshotHeight, block.DeputyNodes)
+	}
+}
+
+// func (bc *BlockChain) AccountManager() *account.Manager {
+// 	return bc.am
+// }
 
 func (bc *BlockChain) DeputyManager() *deputynode.Manager {
 	return bc.dm
@@ -108,7 +124,9 @@ func (bc *BlockChain) HasBlock(hash common.Hash) bool {
 func (bc *BlockChain) getGenesisFromDb() *types.Block {
 	blockDao := database.NewBlockDao(bc.dbEngine)
 	block, err := blockDao.GetBlockByHeight(0)
-	if err != nil {
+	if err != nil && err == database.ErrNotExist {
+		return nil
+	} else if err != nil && err != database.ErrNotExist {
 		panic("can't get genesis block")
 	}
 	return block
