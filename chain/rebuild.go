@@ -228,6 +228,7 @@ func (engine *ReBuildEngine) saveEquity(address common.Address, equity *types.As
 }
 
 func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, error){
+	assetDao := database.NewAssetDao(engine.Store)
 	txes := engine.Block.Txs
 	assetIds := make(map[common.Hash]*types.IssueAsset)
 	for index := 0; index < len(txes); index++ {
@@ -243,7 +244,16 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 			if err != nil {
 				return nil, err
 			}else{
-				assetIds[tx.Hash()] = issueAsset
+				asset, err := assetDao.Get(issueAsset.AssetCode)
+				if err != nil{
+					return nil, err
+				}
+
+				if asset.Category == types.Asset01 {
+					assetIds[asset.AssetCode] = issueAsset
+				}else{
+					assetIds[tx.Hash()] = issueAsset
+				}
 			}
 		}
 	}
