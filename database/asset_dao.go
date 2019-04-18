@@ -18,7 +18,7 @@ func NewAssetDao(db DBEngine) (*AssetDao) {
 	return &AssetDao{engine:db.GetDB()}
 }
 
-func (dao *AssetDao) Set(asset *types.Asset) (error) {
+func (dao *AssetDao) Set(asset *types.Asset) error {
 	if asset == nil {
 		log.Errorf("set asset.asset is nil.")
 		return ErrArgInvalid
