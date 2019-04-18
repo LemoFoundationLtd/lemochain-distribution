@@ -14,7 +14,7 @@ import (
 )
 
 type BlockChain struct {
-	chainID uint16
+	chainID      uint16
 	dm           *deputynode.Manager
 	currentBlock atomic.Value // latest block in current chain
 	stableBlock  atomic.Value // latest stable block in current chain
@@ -32,7 +32,7 @@ func NewBlockChain(chainID uint16, dm *deputynode.Manager, dbEngine database.DBE
 		chainID:        chainID,
 		dm:             dm,
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
-		dbEngine: dbEngine,
+		dbEngine:       dbEngine,
 	}
 
 	if err := bc.loadLastState(); err != nil {
@@ -124,7 +124,9 @@ func (bc *BlockChain) HasBlock(hash common.Hash) bool {
 func (bc *BlockChain) getGenesisFromDb() *types.Block {
 	blockDao := database.NewBlockDao(bc.dbEngine)
 	block, err := blockDao.GetBlockByHeight(0)
-	if err != nil {
+	if err != nil && err == database.ErrNotExist {
+		return nil
+	} else if err != nil && err != database.ErrNotExist {
 		panic("can't get genesis block")
 	}
 	return block

@@ -2,17 +2,17 @@ package chain
 
 import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
-	"math/big"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
+	"math/big"
 	"strconv"
 )
 
 type ReBuildAccount struct {
 	types.AccountData
 
-	Store 		database.DBEngine
-	Code     	[]byte
+	Store database.DBEngine
+	Code  []byte
 
 	AssetCodes    map[common.Hash]*types.Asset
 	AssetIds      map[common.Hash]string
@@ -23,11 +23,11 @@ type ReBuildAccount struct {
 	IsCancelCandidate bool
 
 	NextVersion map[types.ChangeLogType]uint32
-	suicided      bool
+	suicided    bool
 }
 
-func NewReBuildAccount(store database.DBEngine, data *types.AccountData) (*ReBuildAccount) {
-	reBuildAccount := &ReBuildAccount{Store:store, AccountData:*data}
+func NewReBuildAccount(store database.DBEngine, data *types.AccountData) *ReBuildAccount {
+	reBuildAccount := &ReBuildAccount{Store: store, AccountData: *data}
 
 	reBuildAccount.NextVersion = make(map[types.ChangeLogType]uint32)
 	for k, v := range reBuildAccount.NewestRecords {
@@ -41,7 +41,6 @@ func NewReBuildAccount(store database.DBEngine, data *types.AccountData) (*ReBui
 	reBuildAccount.Events = make([]*types.Event, 0)
 	return reBuildAccount
 }
-
 
 func (account *ReBuildAccount) isCandidate(profile types.Profile) bool {
 	if len(profile) <= 0 {
@@ -61,7 +60,7 @@ func (account *ReBuildAccount) isCandidate(profile types.Profile) bool {
 	}
 }
 
-func (account *ReBuildAccount) BuildAccountData() (*types.AccountData) {
+func (account *ReBuildAccount) BuildAccountData() *types.AccountData {
 	return &account.AccountData
 }
 
@@ -70,14 +69,14 @@ func (account *ReBuildAccount) GetAddress() common.Address {
 }
 
 func (account *ReBuildAccount) GetVersion(logType types.ChangeLogType) uint32 {
-	if account.NewestRecords == nil{
+	if account.NewestRecords == nil {
 		return 1
 	}
 
 	version, ok := account.NewestRecords[logType]
 	if !ok {
 		return 1
-	}else{
+	} else {
 		return version.Version
 	}
 }
@@ -87,7 +86,7 @@ func (account *ReBuildAccount) GetNextVersion(logType types.ChangeLogType) uint3
 	if !ok {
 		account.NextVersion[logType] = 1
 		return account.NextVersion[logType]
-	}else{
+	} else {
 		account.NextVersion[logType] = version + 1
 		return account.NextVersion[logType]
 	}
@@ -113,7 +112,7 @@ func (account *ReBuildAccount) GetCandidate() types.Profile {
 	result := make(types.Profile)
 	if len(account.Candidate.Profile) <= 0 {
 		return result
-	}else{
+	} else {
 		for k, v := range account.Candidate.Profile {
 			result[k] = v
 		}
@@ -122,7 +121,7 @@ func (account *ReBuildAccount) GetCandidate() types.Profile {
 }
 
 func (account *ReBuildAccount) SetCandidate(profile types.Profile) {
-	if account.isCandidate(account.Candidate.Profile) && !account.isCandidate(profile){
+	if account.isCandidate(account.Candidate.Profile) && !account.isCandidate(profile) {
 		account.IsCancelCandidate = true
 	}
 
@@ -140,7 +139,7 @@ func (account *ReBuildAccount) GetCandidateState(key string) string {
 	val, ok := account.Candidate.Profile[key]
 	if !ok {
 		return ""
-	}else{
+	} else {
 		return val
 	}
 }
@@ -169,13 +168,13 @@ func (account *ReBuildAccount) GetCode() (types.Code, error) {
 	if account.Code == nil {
 		kvDao := database.NewKvDao(account.Store)
 		val, err := kvDao.Get(account.CodeHash.Bytes())
-		if err != nil{
+		if err != nil {
 			return nil, err
-		}else{
+		} else {
 			account.Code = val
 			return account.Code, nil
 		}
-	}else{
+	} else {
 		return account.Code, nil
 	}
 }
@@ -220,7 +219,7 @@ func (account *ReBuildAccount) GetStorageState(key common.Hash) ([]byte, error) 
 	val, ok := account.Storage[key]
 	if !ok {
 		return nil, nil
-	}else{
+	} else {
 		return val, nil
 	}
 }
@@ -230,7 +229,7 @@ func (account *ReBuildAccount) SetStorageState(key common.Hash, value []byte) er
 	return nil
 }
 
-func (account *ReBuildAccount) GetAssetCodeFromDB(code common.Hash)(*types.Asset, error) {
+func (account *ReBuildAccount) GetAssetCodeFromDB(code common.Hash) (*types.Asset, error) {
 	assetDao := database.NewAssetDao(account.Store)
 	return assetDao.Get(code)
 }
@@ -245,7 +244,7 @@ func (account *ReBuildAccount) GetAssetCode(code common.Hash) (*types.Asset, err
 
 		account.AssetCodes[code] = tmp
 		return tmp, nil
-	}else{
+	} else {
 		return asset, nil
 	}
 }
@@ -254,7 +253,7 @@ func (account *ReBuildAccount) SetAssetCode(code common.Hash, asset *types.Asset
 	if asset == nil {
 		account.AssetCodes[code] = nil
 		return nil
-	}else {
+	} else {
 		account.AssetCodes[code] = asset.Clone()
 		return nil
 	}
@@ -274,10 +273,10 @@ func (account *ReBuildAccount) GetAssetCodeTotalSupply(code common.Hash) (*big.I
 
 		account.AssetCodes[code] = tmp
 		return new(big.Int).Set(tmp.TotalSupply), nil
-	}else{
-		if asset == nil{
+	} else {
+		if asset == nil {
 			return nil, nil
-		}else{
+		} else {
 			return new(big.Int).Set(asset.TotalSupply), nil
 		}
 	}
@@ -297,7 +296,7 @@ func (account *ReBuildAccount) SetAssetCodeTotalSupply(code common.Hash, val *bi
 
 		tmp.TotalSupply.Set(val)
 		return nil
-	}else{
+	} else {
 		asset.TotalSupply.Set(val)
 		return nil
 	}
@@ -317,10 +316,10 @@ func (account *ReBuildAccount) GetAssetCodeState(code common.Hash, key string) (
 
 		account.AssetCodes[code] = tmp
 		return tmp.Profile[key], nil
-	}else{
-		if asset == nil{
+	} else {
+		if asset == nil {
 			return "", nil
-		}else{
+		} else {
 			return account.AssetCodes[code].Profile[key], nil
 		}
 	}
@@ -341,10 +340,10 @@ func (account *ReBuildAccount) SetAssetCodeState(code common.Hash, key string, v
 		tmp.Profile[key] = val
 		account.AssetCodes[code] = tmp
 		return nil
-	}else{
-		if asset == nil{
+	} else {
+		if asset == nil {
 			return database.ErrNotExist
-		}else{
+		} else {
 			account.AssetCodes[code].Profile[key] = val
 			return nil
 		}
@@ -354,9 +353,9 @@ func (account *ReBuildAccount) SetAssetCodeState(code common.Hash, key string, v
 func (account *ReBuildAccount) GetAssetId(id common.Hash) (string, error) {
 	mateDataDao := database.NewMateDataDao(account.Store)
 	val, err := mateDataDao.Get(id)
-	if err != nil{
+	if err != nil {
 		return "", err
-	}else{
+	} else {
 		return val.Profile, nil
 	}
 }
@@ -368,11 +367,11 @@ func (account *ReBuildAccount) GetAssetIdState(id common.Hash) (string, error) {
 		mateData, err := mateDataDao.Get(id)
 		if err != nil {
 			return "", err
-		}else{
+		} else {
 			account.AssetIds[id] = mateData.Profile
 			return mateData.Profile, nil
 		}
-	}else{
+	} else {
 		return assetId, nil
 	}
 }
@@ -391,13 +390,13 @@ func (account *ReBuildAccount) GetEquityState(id common.Hash) (*types.AssetEquit
 	equity, ok := account.AssetEquities[id]
 	if !ok {
 		tmp, err := account.GetEquity(id)
-		if err != nil{
+		if err != nil {
 			return nil, err
-		}else{
+		} else {
 			account.AssetEquities[id] = tmp
 			return tmp, nil
 		}
-	}else{
+	} else {
 		return equity.Clone(), nil
 	}
 }
@@ -406,7 +405,7 @@ func (account *ReBuildAccount) SetEquityState(id common.Hash, equity *types.Asse
 	if equity == nil {
 		account.AssetEquities[id] = nil
 		return nil
-	}else{
+	} else {
 		account.AssetEquities[id] = equity.Clone()
 		return nil
 	}
