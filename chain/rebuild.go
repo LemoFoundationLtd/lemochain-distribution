@@ -13,8 +13,6 @@ type ReBuildEngine struct {
 	Store database.DBEngine
 	Block     *types.Block
 	ReBuildAccountsCache map[common.Address]*ReBuildAccount
-
-	// ChangeCandidates     map[common.Address]bool
 }
 
 func NewReBuildEngine(store database.DBEngine, block *types.Block) *ReBuildEngine {
