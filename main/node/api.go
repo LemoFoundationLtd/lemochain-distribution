@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -36,7 +37,7 @@ type PrivateAccountAPI struct {
 
 // NewPrivateAccountAPI
 func NewPrivateAccountAPI(node *Node) *PrivateAccountAPI {
-	return &PrivateAccountAPI{node:node}
+	return &PrivateAccountAPI{node: node}
 }
 
 // NewAccount get lemo address api
@@ -55,7 +56,7 @@ type PublicAccountAPI struct {
 
 // NewPublicAccountAPI
 func NewPublicAccountAPI(node *Node) *PublicAccountAPI {
-	return &PublicAccountAPI{node:node}
+	return &PublicAccountAPI{node: node}
 }
 
 // GetBalance get balance in mo
@@ -198,7 +199,7 @@ type PublicChainAPI struct {
 
 // NewChainAPI API for access to chain information
 func NewPublicChainAPI(node *Node) *PublicChainAPI {
-	return &PublicChainAPI{node:node}
+	return &PublicChainAPI{node: node}
 }
 
 //go:generate gencodec -type CandidateListRes --field-override candidateListResMarshaling -out gen_candidate_list_res_json.go
@@ -216,7 +217,12 @@ func (c *PublicChainAPI) GetDeputyNodeList() []string {
 
 	var result []string
 	for _, n := range nodes {
-		result = append(result, n.NodeAddrString())
+		candidateAcc := c.node.accMan.GetCanonicalAccount(n.MinerAddress)
+		profile := candidateAcc.GetCandidate()
+		host := profile[types.CandidateKeyHost]
+		port := profile[types.CandidateKeyPort]
+		nodeAddrString := fmt.Sprintf("%x@%s:%s", n.NodeID, host, port)
+		result = append(result, nodeAddrString)
 	}
 	return result
 }

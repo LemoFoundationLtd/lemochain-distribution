@@ -12,13 +12,13 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/store"
 	"github.com/LemoFoundationLtd/lemochain-core/store/protocol"
 	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"github.com/LemoFoundationLtd/lemochain-distribution/main/config"
 	. "github.com/LemoFoundationLtd/lemochain-distribution/network"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 )
 
 type Node struct {
@@ -152,7 +152,7 @@ func (n *Node) startHttp(apis []rpc.API) error {
 	cors := strings.Split(n.config.Http.CorsDomain, ",")
 	vhosts := strings.Split(n.config.Http.VirtualHosts, ",")
 	go rpc.NewHTTPServer(cors, vhosts, handler).Serve(listener)
-	log.Info("HTTP endpoint opened", "url", fmt.Sprintf("http://%s", endpoint), "cors", cors, "vhosts", vhosts)
+	log.Info("HTTP endpoint opened", "url", fmt.Sprintf("http://%s", endpoint), "cors", strings.Join(cors, ","), "vhosts", strings.Join(vhosts, ","))
 	// All listeners booted successfully
 	n.httpEndpoint = endpoint
 	n.httpListener = listener
