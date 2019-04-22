@@ -5,12 +5,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var (
-	DRIVER_MYSQL = "mysql"
-	DNS_MYSQL    = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
-	//DNS_MYSQL    = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
-	//DNS_MYSQL = "root:123456@tcp(149.28.68.93:3306)/lemochain01?charset=utf8mb4"
-)
+// var (
+// 	DRIVER_MYSQL = "mysql"
+// 	DNS_MYSQL    = "root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4"
+// 	DNS_MYSQL    = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
+// 	DNS_MYSQL = "root:123456@tcp(149.28.68.93:3306)/lemochain01?charset=utf8mb4"
+// )
 
 // driver = "mysql"
 // dns = root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4

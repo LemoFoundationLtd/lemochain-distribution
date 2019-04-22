@@ -15,8 +15,9 @@ var _ = (*ConfigMarshaling)(nil)
 func (c Config) MarshalJSON() ([]byte, error) {
 	type Config struct {
 		ChainID     hexutil.Uint32 `json:"chainID"        gencodec:"required"`
+		DeputyCount hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
 		GenesisHash hexutil.Bytes  `json:"genesisHash"    gencodec:"required"`
-		DataDir     string         `json:"serverDataDir"        gencodec:"required"`
+		DataDir     string         `json:"serverDataDir"  gencodec:"required"`
 		DbUri       string         `json:"dbUri"          gencodec:"required"`
 		DbDriver    string         `json:"dbDriver"       gencodec:"required"`
 		LogLevel    hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
@@ -26,6 +27,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 	}
 	var enc Config
 	enc.ChainID = hexutil.Uint32(c.ChainID)
+	enc.DeputyCount = hexutil.Uint32(c.DeputyCount)
 	enc.GenesisHash = c.GenesisHash
 	enc.DataDir = c.DataDir
 	enc.DbUri = c.DbUri
@@ -41,8 +43,9 @@ func (c Config) MarshalJSON() ([]byte, error) {
 func (c *Config) UnmarshalJSON(input []byte) error {
 	type Config struct {
 		ChainID     *hexutil.Uint32 `json:"chainID"        gencodec:"required"`
+		DeputyCount *hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
 		GenesisHash *hexutil.Bytes  `json:"genesisHash"    gencodec:"required"`
-		DataDir     *string         `json:"serverDataDir"        gencodec:"required"`
+		DataDir     *string         `json:"serverDataDir"  gencodec:"required"`
 		DbUri       *string         `json:"dbUri"          gencodec:"required"`
 		DbDriver    *string         `json:"dbDriver"       gencodec:"required"`
 		LogLevel    *hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
@@ -58,6 +61,10 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'chainID' for Config")
 	}
 	c.ChainID = uint32(*dec.ChainID)
+	if dec.DeputyCount == nil {
+		return errors.New("missing required field 'deputyCount' for Config")
+	}
+	c.DeputyCount = uint32(*dec.DeputyCount)
 	if dec.GenesisHash == nil {
 		return errors.New("missing required field 'genesisHash' for Config")
 	}

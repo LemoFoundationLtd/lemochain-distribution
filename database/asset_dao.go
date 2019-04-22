@@ -18,7 +18,7 @@ func NewAssetDao(db DBEngine) (*AssetDao) {
 	return &AssetDao{engine:db.GetDB()}
 }
 
-func (dao *AssetDao) Set(asset *types.Asset) (error) {
+func (dao *AssetDao) Set(asset *types.Asset) error {
 	if asset == nil {
 		log.Errorf("set asset.asset is nil.")
 		return ErrArgInvalid
@@ -53,6 +53,7 @@ func (dao *AssetDao) Get(code common.Hash) (*types.Asset, error) {
 
 func (dao *AssetDao) decodeAsset(val []byte)(*types.Asset, error) {
 	var asset types.Asset
+	asset.Profile = make(types.Profile)
 	err := rlp.DecodeBytes(val, &asset)
 	if err != nil{
 		return nil, err

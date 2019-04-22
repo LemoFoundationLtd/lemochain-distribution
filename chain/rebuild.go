@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"encoding/json"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
@@ -9,29 +11,19 @@ import (
 
 type ReBuildEngine struct {
 	Store database.DBEngine
-
 	Block     *types.Block
-	LogsCache []*types.ChangeLog
-	TxCache   []*types.Transaction
-
 	ReBuildAccountsCache map[common.Address]*ReBuildAccount
-	AssetCodeCache       map[common.Hash]*types.Asset
-	AssetIdCache         map[common.Hash]string
-	EquityCache          map[common.Hash]*types.AssetEquity
-	StorageCache         map[common.Hash][]byte
-	ChangeCandidates     map[common.Address]bool
 }
 
-func NewReBuildEngine(store database.DBEngine, block *types.Block) (*ReBuildEngine) {
+func NewReBuildEngine(store database.DBEngine, block *types.Block) *ReBuildEngine {
 	return &ReBuildEngine{
 		Store:                store,
-		LogsCache:            block.ChangeLogs,
 		Block:                block,
 		ReBuildAccountsCache: make(map[common.Address]*ReBuildAccount),
 	}
 }
 
-func (engine *ReBuildEngine) GetAccount(address common.Address) (types.AccountAccessor) {
+func (engine *ReBuildEngine) GetAccount(address common.Address) types.AccountAccessor {
 	reBuildAccount, ok := engine.ReBuildAccountsCache[address]
 	if ok {
 		return reBuildAccount
@@ -56,20 +48,25 @@ func (engine *ReBuildEngine) Close() {
 	//
 }
 
-func (engine *ReBuildEngine) ReBuild() (error) {
-	if len(engine.LogsCache) > 0 {
-		for _, cl := range engine.LogsCache {
+func (engine *ReBuildEngine) ReBuild() error {
+	logs := engine.Block.ChangeLogs
+	if len(logs) > 0 {
+		for _, cl := range logs {
 			if err := cl.Redo(engine); err != nil {
 				return err
 			}
 		}
 	}
 
-	engine.resolve()
+	err := engine.resolve()
+	if err != nil{
+		return err
+	}
+
 	return engine.Save()
 }
 
-func (engine *ReBuildEngine) Save() (error) {
+func (engine *ReBuildEngine) Save() error {
 	err := engine.saveBlock(engine.Block)
 	if err != nil {
 		return err
@@ -80,27 +77,7 @@ func (engine *ReBuildEngine) Save() (error) {
 		return err
 	}
 
-	err = engine.saveTxBatch(engine.TxCache)
-	if err != nil {
-		return err
-	}
-
-	err = engine.saveStorageBatch(engine.StorageCache)
-	if err != nil {
-		return err
-	}
-
-	err = engine.saveAssetCodeBatch(engine.AssetCodeCache)
-	if err != nil {
-		return err
-	}
-
-	err = engine.saveAssetIdBatch(engine.AssetIdCache)
-	if err != nil {
-		return err
-	}
-
-	err = engine.saveEquitiesBatch(engine.EquityCache)
+	err = engine.saveTxBatch(engine.Block.Txs)
 	if err != nil {
 		return err
 	}
@@ -108,17 +85,17 @@ func (engine *ReBuildEngine) Save() (error) {
 	return engine.saveCurrentBlock(engine.Block)
 }
 
-func (engine *ReBuildEngine) saveCurrentBlock(block *types.Block) (error) {
+func (engine *ReBuildEngine) saveCurrentBlock(block *types.Block) error {
 	contextDao := database.NewContextDao(engine.Store)
 	return contextDao.SetCurrentBlock(block)
 }
 
-func (engine *ReBuildEngine) saveBlock(block *types.Block) (error) {
+func (engine *ReBuildEngine) saveBlock(block *types.Block) error {
 	blockDao := database.NewBlockDao(engine.Store)
 	return blockDao.SetBlock(block.Hash(), block)
 }
 
-func (engine *ReBuildEngine) saveAccountBatch(reBuildAccounts map[common.Address]*ReBuildAccount) (error) {
+func (engine *ReBuildEngine) saveAccountBatch(reBuildAccounts map[common.Address]*ReBuildAccount) error {
 	for _, v := range reBuildAccounts {
 		data := v.BuildAccountData()
 		err := engine.saveAccount(data)
@@ -130,12 +107,12 @@ func (engine *ReBuildEngine) saveAccountBatch(reBuildAccounts map[common.Address
 	return nil
 }
 
-func (engine *ReBuildEngine) saveAccount(account *types.AccountData) (error) {
+func (engine *ReBuildEngine) saveAccount(account *types.AccountData) error {
 	accountDao := database.NewAccountDao(engine.Store)
 	return accountDao.Set(account.Address, account)
 }
 
-func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) (error) {
+func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) error {
 	for index := 0; index < len(txes); index++ {
 		err := engine.saveTx(txes[index])
 		if err != nil {
@@ -146,7 +123,7 @@ func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) (error) {
 	return nil
 }
 
-func (engine *ReBuildEngine) saveTx(tx *types.Transaction) (error) {
+func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 	txDao := database.NewTxDao(engine.Store)
 
 	from, err := tx.From()
@@ -184,8 +161,8 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) (error) {
 	return nil
 }
 
-func (engine *ReBuildEngine) saveStorageBatch(storages map[common.Hash][]byte) (error) {
-	for k, v := range storages {
+func (engine *ReBuildEngine) saveStorageBatch(storage map[common.Hash][]byte) error {
+	for k, v := range storage {
 		err := engine.saveStorage(k, v)
 		if err != nil {
 			return err
@@ -195,13 +172,14 @@ func (engine *ReBuildEngine) saveStorageBatch(storages map[common.Hash][]byte) (
 	return nil
 }
 
-func (engine *ReBuildEngine) saveStorage(hash common.Hash, val []byte) (error) {
-	return nil
+func (engine *ReBuildEngine) saveStorage(hash common.Hash, val []byte) error {
+	kvDao := database.NewKvDao(engine.Store)
+	return kvDao.Set(hash.Bytes(), val)
 }
 
-func (engine *ReBuildEngine) saveAssetCodeBatch(assets map[common.Hash]*types.Asset) (error) {
-	for k, v := range assets {
-		err := engine.saveAssetCode(k, v)
+func (engine *ReBuildEngine) saveAssetCodeBatch(assets map[common.Hash]*types.Asset) error {
+	for _, v := range assets {
+		err := engine.saveAssetCode(v)
 		if err != nil {
 			return err
 		}
@@ -209,13 +187,14 @@ func (engine *ReBuildEngine) saveAssetCodeBatch(assets map[common.Hash]*types.As
 	return nil
 }
 
-func (engine *ReBuildEngine) saveAssetCode(code common.Hash, asset *types.Asset) (error) {
-	return nil
+func (engine *ReBuildEngine) saveAssetCode(asset *types.Asset) error {
+	assetCodeDao := database.NewAssetDao(engine.Store)
+	return assetCodeDao.Set(asset)
 }
 
-func (engine *ReBuildEngine) saveAssetIdBatch(assetIds map[common.Hash]string) (error) {
+func (engine *ReBuildEngine) saveAssetIdBatch(address common.Address, assetIds map[common.Hash]*types.IssueAsset) (error) {
 	for k, v := range assetIds {
-		err := engine.saveAssetId(k, v)
+		err := engine.saveAssetId(address, k, v)
 		if err != nil {
 			return err
 		}
@@ -223,13 +202,19 @@ func (engine *ReBuildEngine) saveAssetIdBatch(assetIds map[common.Hash]string) (
 	return nil
 }
 
-func (engine *ReBuildEngine) saveAssetId(id common.Hash, val string) (error) {
-	return nil
+func (engine *ReBuildEngine) saveAssetId(address common.Address, hash common.Hash, assetId *types.IssueAsset) (error) {
+	assetIdDao := database.NewMateDataDao(engine.Store)
+	return assetIdDao.Set(&database.MateData{
+		Id:hash,
+		Code:assetId.AssetCode,
+		Owner:address,
+		Profile:assetId.MetaData,
+	})
 }
 
-func (engine *ReBuildEngine) saveEquitiesBatch(equities map[common.Hash]*types.AssetEquity) (error) {
-	for k, v := range equities {
-		err := engine.saveEquity(k, v)
+func (engine *ReBuildEngine) saveEquitiesBatch(address common.Address, equities map[common.Hash]*types.AssetEquity) (error) {
+	for _, v := range equities {
+		err := engine.saveEquity(address, v)
 		if err != nil {
 			return err
 		}
@@ -237,63 +222,90 @@ func (engine *ReBuildEngine) saveEquitiesBatch(equities map[common.Hash]*types.A
 	return nil
 }
 
-func (engine *ReBuildEngine) saveEquity(id common.Hash, equity *types.AssetEquity) (error) {
-	return nil
+func (engine *ReBuildEngine) saveEquity(address common.Address, equity *types.AssetEquity) error {
+	equityDao := database.NewEquityDao(engine.Store)
+	return equityDao.Set(address, equity)
 }
 
-func (engine *ReBuildEngine) saveCandidates() (error) {
-	candidateDao := database.NewCandidateDao(engine.Store)
-	for k, v := range engine.ChangeCandidates {
-		if v {
-			err := candidateDao.Set(&database.CandidateItem{
-				User:  k,
-				Votes: engine.ReBuildAccountsCache[k].Candidate.Votes,
-			})
-
-			if err != nil {
-				return err
+func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, error){
+	assetDao := database.NewAssetDao(engine.Store)
+	txes := engine.Block.Txs
+	assetIds := make(map[common.Hash]*types.IssueAsset)
+	for index := 0; index < len(txes); index++ {
+		tx := txes[index]
+		if tx.Type() == params.IssueAssetTx {
+			extendData := tx.Data()
+			if len(extendData) <= 0 {
+				panic("tx is issue asset. but data is nil.")
 			}
-		} else {
-			// del
+
+			issueAsset := &types.IssueAsset{}
+			err := json.Unmarshal(extendData, issueAsset)
+			if err != nil {
+				return nil, err
+			}else{
+				asset, err := assetDao.Get(issueAsset.AssetCode)
+				if err != nil{
+					return nil, err
+				}
+
+				if asset.Category == types.Asset01 {
+					assetIds[asset.AssetCode] = issueAsset
+				}else{
+					assetIds[tx.Hash()] = issueAsset
+				}
+			}
 		}
 	}
 
-	return nil
+	return assetIds, nil
 }
 
-func (engine *ReBuildEngine) resolve() {
+func (engine *ReBuildEngine) resolve() error {
+	assetIds, err := engine.getAssetIds()
+	if err != nil{
+		return err
+	}
 
-	engine.LogsCache = engine.Block.ChangeLogs
-	engine.TxCache = engine.Block.Txs
-
-	engine.AssetCodeCache = make(map[common.Hash]*types.Asset)
-	engine.AssetIdCache = make(map[common.Hash]string)
-	engine.EquityCache = make(map[common.Hash]*types.AssetEquity)
-	engine.StorageCache = make(map[common.Hash][]byte)
-	engine.ChangeCandidates = make(map[common.Address]bool)
 	for _, v := range engine.ReBuildAccountsCache {
 		if len(v.AssetCodes) > 0 {
+			AssetCodeCache := make(map[common.Hash]*types.Asset)
 			for ak, av := range v.AssetCodes {
-				engine.AssetCodeCache[ak] = av
+				AssetCodeCache[ak] = av
 			}
+
+			engine.saveAssetCodeBatch(AssetCodeCache)
 		}
 
 		if len(v.AssetIds) > 0 {
+			AssetIdCache := make(map[common.Hash]*types.IssueAsset)
 			for ak, av := range v.AssetIds {
-				engine.AssetIdCache[ak] = av
+				AssetCode := assetIds[ak].AssetCode
+				AssetIdCache[ak] = &types.IssueAsset{
+					AssetCode:AssetCode,
+					MetaData:av,
+				}
 			}
+
+			engine.saveAssetIdBatch(v.Address, AssetIdCache)
 		}
 
 		if len(v.AssetEquities) > 0 {
+			EquityCache := make(map[common.Hash]*types.AssetEquity)
 			for ak, av := range v.AssetEquities {
-				engine.EquityCache[ak] = av
+				EquityCache[ak] = av
 			}
+
+			engine.saveEquitiesBatch(v.Address, EquityCache)
 		}
 
 		if len(v.Storage) > 0 {
+			StorageCache := make(map[common.Hash][]byte)
 			for ak, av := range v.Storage {
-				engine.StorageCache[ak] = av
+				StorageCache[ak] = av
 			}
+
+			engine.saveStorageBatch(StorageCache)
 		}
 
 		isCandidate := v.isCandidate(v.Candidate.Profile)
@@ -302,11 +314,24 @@ func (engine *ReBuildEngine) resolve() {
 		}
 
 		if isCandidate {
-			engine.ChangeCandidates[v.Address] = true
+			candidateDao := database.NewCandidateDao(engine.Store)
+			err := candidateDao.Set(&database.CandidateItem{
+				User:  v.Address,
+				Votes: v.Candidate.Votes,
+			})
+			if err != nil {
+				return err
+			}
 		}
 
 		if v.IsCancelCandidate {
-			engine.ChangeCandidates[v.Address] = false
+			candidateDao := database.NewCandidateDao(engine.Store)
+			err := candidateDao.Del(v.Address)
+			if err != nil{
+				return err
+			}
 		}
 	}
+
+	return nil
 }

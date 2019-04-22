@@ -3,7 +3,7 @@ package node
 import (
 	"encoding/json"
 	"errors"
-	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
+	"fmt"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -11,7 +11,6 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common/hexutil"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	"github.com/LemoFoundationLtd/lemochain-core/store"
-	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
 	"github.com/LemoFoundationLtd/lemochain-distribution/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"math/big"
@@ -33,12 +32,12 @@ var (
 
 // Private
 type PrivateAccountAPI struct {
-	manager *account.Manager
+	node *Node
 }
 
 // NewPrivateAccountAPI
-func NewPrivateAccountAPI(m *account.Manager) *PrivateAccountAPI {
-	return &PrivateAccountAPI{m}
+func NewPrivateAccountAPI(node *Node) *PrivateAccountAPI {
+	return &PrivateAccountAPI{node: node}
 }
 
 // NewAccount get lemo address api
@@ -52,12 +51,12 @@ func (a *PrivateAccountAPI) NewKeyPair() (*crypto.AccountKey, error) {
 
 // PublicAccountAPI API for access to account information
 type PublicAccountAPI struct {
-	manager *account.Manager
+	node *Node
 }
 
 // NewPublicAccountAPI
-func NewPublicAccountAPI(m *account.Manager) *PublicAccountAPI {
-	return &PublicAccountAPI{m}
+func NewPublicAccountAPI(node *Node) *PublicAccountAPI {
+	return &PublicAccountAPI{node: node}
 }
 
 // GetBalance get balance in mo
@@ -78,7 +77,7 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 		return nil, err
 	}
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
 	accountDao := database.NewAccountDao(dbEngine)
@@ -111,7 +110,7 @@ func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId c
 		return nil, err
 	}
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
 	equityDao := database.NewEquityDao(dbEngine)
@@ -134,7 +133,7 @@ func (a *PublicAccountAPI) GetAssetEquityByAssetCode(LemoAddress string, assetCo
 		return nil, err
 	}
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
 	equityDao := database.NewEquityDao(dbEngine)
@@ -155,7 +154,7 @@ func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int) 
 		return nil, err
 	}
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
 	equityDao := database.NewEquityDao(dbEngine)
@@ -171,7 +170,7 @@ func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int) 
 }
 
 func (a *PublicAccountAPI) GetAsset(assetCode common.Hash) (*types.Asset, error) {
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
 	assetDao := database.NewAssetDao(dbEngine)
@@ -179,7 +178,7 @@ func (a *PublicAccountAPI) GetAsset(assetCode common.Hash) (*types.Asset, error)
 }
 
 func (a *PublicAccountAPI) GetMateData(assetId common.Hash) (*database.MateData, error) {
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
 	mateDataDao := database.NewMateDataDao(dbEngine)
@@ -195,12 +194,12 @@ type CandidateInfo struct {
 
 // ChainAPI
 type PublicChainAPI struct {
-	chain *chain.BlockChain
+	node *Node
 }
 
 // NewChainAPI API for access to chain information
-func NewPublicChainAPI(chain *chain.BlockChain) *PublicChainAPI {
-	return &PublicChainAPI{chain}
+func NewPublicChainAPI(node *Node) *PublicChainAPI {
+	return &PublicChainAPI{node: node}
 }
 
 //go:generate gencodec -type CandidateListRes --field-override candidateListResMarshaling -out gen_candidate_list_res_json.go
@@ -214,11 +213,16 @@ type candidateListResMarshaling struct {
 
 // GetDeputyNodeList get deputy nodes who are in charge
 func (c *PublicChainAPI) GetDeputyNodeList() []string {
-	nodes := c.chain.DeputyManager().GetDeputiesByHeight(c.chain.CurrentBlock().Height())
+	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.CurrentBlock().Height())
 
 	var result []string
 	for _, n := range nodes {
-		result = append(result, n.NodeAddrString())
+		candidateAcc := c.node.accMan.GetCanonicalAccount(n.MinerAddress)
+		profile := candidateAcc.GetCandidate()
+		host := profile[types.CandidateKeyHost]
+		port := profile[types.CandidateKeyPort]
+		nodeAddrString := fmt.Sprintf("%x@%s:%s", n.NodeID, host, port)
+		result = append(result, nodeAddrString)
 	}
 	return result
 }
@@ -226,7 +230,7 @@ func (c *PublicChainAPI) GetDeputyNodeList() []string {
 //
 // // GetCandidateNodeList get all candidate node list information and return total candidate node
 func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	candidateDao := database.NewCandidateDao(dbEngine)
@@ -260,7 +264,7 @@ func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, e
 func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
 	result := make([]*CandidateInfo, 0)
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	candidateDao := database.NewCandidateDao(dbEngine)
@@ -287,7 +291,7 @@ func (c *PublicChainAPI) GetCandidateTop30() []*CandidateInfo {
 
 // GetBlockByNumber get block information by height
 func (c *PublicChainAPI) GetBlockByHeight(height uint32, withBody bool) *types.Block {
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	blockDao := database.NewBlockDao(dbEngine)
@@ -308,7 +312,7 @@ func (c *PublicChainAPI) GetBlockByHeight(height uint32, withBody bool) *types.B
 
 // GetBlockByHash get block information by hash
 func (c *PublicChainAPI) GetBlockByHash(hash string, withBody bool) *types.Block {
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	blockDao := database.NewBlockDao(dbEngine)
@@ -329,17 +333,17 @@ func (c *PublicChainAPI) GetBlockByHash(hash string, withBody bool) *types.Block
 
 // ChainID get chain id
 func (c *PublicChainAPI) ChainID() uint16 {
-	return c.chain.ChainID()
+	return c.node.chain.ChainID()
 }
 
 // Genesis get the creation block
 func (c *PublicChainAPI) Genesis() *types.Block {
-	return c.chain.Genesis()
+	return c.node.chain.Genesis()
 }
 
 // CurrentBlock get the current latest block
 func (c *PublicChainAPI) CurrentBlock(withBody bool) *types.Block {
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	contextDao := database.NewContextDao(dbEngine)
@@ -566,7 +570,7 @@ func VerifyTx(tx *types.Transaction) error {
 func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error) {
 	txHash := common.HexToHash(hash)
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(t.node.config.DbDriver, t.node.config.DbUri)
 	defer dbEngine.Close()
 
 	txDao := database.NewTxDao(dbEngine)
@@ -601,7 +605,7 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 		return nil, err
 	}
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(t.node.config.DbDriver, t.node.config.DbUri)
 	defer dbEngine.Close()
 
 	txDao := database.NewTxDao(dbEngine)
@@ -630,7 +634,7 @@ func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, 
 		return nil, err
 	}
 
-	dbEngine := database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
+	dbEngine := database.NewMySqlDB(t.node.config.DbDriver, t.node.config.DbUri)
 	defer dbEngine.Close()
 
 	txDao := database.NewTxDao(dbEngine)

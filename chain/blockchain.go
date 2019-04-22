@@ -8,16 +8,13 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNet "github.com/LemoFoundationLtd/lemochain-core/network"
-	db "github.com/LemoFoundationLtd/lemochain-core/store/protocol"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"sync"
 	"sync/atomic"
 )
 
 type BlockChain struct {
-	chainID uint16
-	// db           db.ChainDB
-	// am           *account.Manager
+	chainID      uint16
 	dm           *deputynode.Manager
 	currentBlock atomic.Value // latest block in current chain
 	stableBlock  atomic.Value // latest stable block in current chain
@@ -30,14 +27,14 @@ type BlockChain struct {
 	dbEngine       database.DBEngine
 }
 
-func NewBlockChain(chainID uint16, dm *deputynode.Manager, db db.ChainDB) (bc *BlockChain, err error) {
+func NewBlockChain(chainID uint16, dm *deputynode.Manager, dbEngine database.DBEngine) (bc *BlockChain, err error) {
 	bc = &BlockChain{
 		chainID:        chainID,
 		dm:             dm,
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
+		dbEngine:       dbEngine,
 	}
 
-	bc.dbEngine = database.NewMySqlDB(database.DRIVER_MYSQL, database.DNS_MYSQL)
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
@@ -47,6 +44,18 @@ func NewBlockChain(chainID uint16, dm *deputynode.Manager, db db.ChainDB) (bc *B
 	}
 
 	return bc, nil
+}
+
+// InitDeputyNodes init deputy nodes information
+func InitDeputyNodes(dm *deputynode.Manager, bc *BlockChain) {
+	for snapshotHeight := uint32(0); ; snapshotHeight += params.TermDuration {
+		block := bc.GetBlockByHeight(snapshotHeight)
+		if block == nil {
+			break
+		}
+
+		dm.SaveSnapshot(snapshotHeight, block.DeputyNodes)
+	}
 }
 
 // func (bc *BlockChain) AccountManager() *account.Manager {
@@ -90,7 +99,6 @@ func (bc *BlockChain) loadLastState() error {
 	}
 	bc.currentBlock.Store(block)
 	bc.stableBlock.Store(block)
-	// bc.am = account.NewManager(block.Hash(), bc.db)
 	return nil
 }
 
@@ -116,7 +124,9 @@ func (bc *BlockChain) HasBlock(hash common.Hash) bool {
 func (bc *BlockChain) getGenesisFromDb() *types.Block {
 	blockDao := database.NewBlockDao(bc.dbEngine)
 	block, err := blockDao.GetBlockByHeight(0)
-	if err != nil {
+	if err != nil && err == database.ErrNotExist {
+		return nil
+	} else if err != nil && err != database.ErrNotExist {
 		panic("can't get genesis block")
 	}
 	return block
@@ -210,67 +220,6 @@ func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) erro
 		return nil
 	}
 }
-
-// InsertChain insert block of non-self to chain
-// func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) (err error) {
-// 	bc.mux.Lock()
-// 	defer bc.mux.Unlock()
-//
-// 	hash := block.Hash()
-// 	if has, _ := bc.db.IsExistByHash(hash); has {
-// 		return nil
-// 	}
-// 	if block.Height() > 0 {
-// 		// process changelog
-// 		if err := bc.am.RebuildAll(block); err != nil {
-// 			log.Errorf("rebuild account manager failed: %v", err)
-// 			return err
-// 		}
-// 		if err := bc.am.Finalise(); err != nil {
-// 			panic("init genesis error01")
-// 		}
-// 	} else {
-// 		bc.initGenesis(block)
-// 	}
-//
-// 	if err = bc.db.SetBlock(hash, block); err != nil {
-// 		log.Errorf("can't insert block to cache. height:%d hash:%s", block.Height(), hash.Prefix())
-// 		return coreChain.ErrSaveBlock
-// 	}
-// 	log.Infof("Insert block to chain. height: %d. hash: %s. time: %d. parent: %s", block.Height(), block.Hash().Prefix(), block.Time(), block.ParentHash().Prefix())
-//
-// 	if err := bc.am.Save(hash); err != nil {
-// 		log.Errorf("save account manager failed: %v", err)
-// 		return err
-// 	}
-// 	if err = bc.db.SetStableBlock(hash); err != nil {
-// 		log.Errorf("can't SetStableBlock. height:%d hash:%s", block.Height(), hash.Prefix())
-// 		return coreChain.ErrSetStableBlockToDB
-// 	}
-//
-// 	// update deputy nodes
-// 	bc.updateDeputyNodes(block)
-// 	bc.currentBlock.Store(block)
-// 	bc.stableBlock.Store(block)
-// 	return nil
-// }
-
-// func (bc *BlockChain) initGenesis(b *types.Block) {
-// 	bc.am = account.NewManager(common.Hash{}, bc.db)
-// 	total, _ := new(big.Int).SetString("1600000000000000000000000000", 10) // 1.6 billion
-// 	bc.am.GetAccount(b.MinerAddress()).SetBalance(total)
-// 	if err := bc.am.Finalise(); err != nil {
-// 		panic("init genesis error02")
-// 	}
-// 	b.Header.VersionRoot = bc.am.GetVersionRoot()
-// 	logs := bc.am.GetChangeLogs()
-// 	b.SetChangeLogs(logs)
-// 	b.Header.LogRoot = types.DeriveChangeLogsSha(logs)
-// }
-
-// func (bc *BlockChain) Db() db.ChainDB {
-// 	// return bc.db
-// }
 
 // not used. just for implement interface
 func (bc *BlockChain) SetStableBlock(hash common.Hash, height uint32) error {

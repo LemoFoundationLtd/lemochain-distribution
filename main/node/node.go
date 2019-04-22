@@ -12,6 +12,7 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/store"
 	"github.com/LemoFoundationLtd/lemochain-core/store/protocol"
 	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
+	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"github.com/LemoFoundationLtd/lemochain-distribution/main/config"
 	. "github.com/LemoFoundationLtd/lemochain-distribution/network"
 	"net"
@@ -51,12 +52,12 @@ func initDb(dataDir string, driver string, dns string) protocol.ChainDB {
 }
 
 func New(cfg *config.Config) (*Node, error) {
-	db := initDb(cfg.DataDir, cfg.DbDriver, cfg.DbUri)
 	dm := deputynode.NewManager(int(cfg.DeputyCount))
-	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), dm, db)
+	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), dm, database.NewMySqlDB(cfg.DbDriver, cfg.DbUri))
 	if err != nil {
 		return nil, err
 	}
+	chain.InitDeputyNodes(dm, bc)
 	h := common.Hash{}
 	copy(h[:], cfg.GenesisHash)
 	pm := NewProtocolManager(uint16(cfg.ChainID), h, cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
@@ -151,7 +152,7 @@ func (n *Node) startHttp(apis []rpc.API) error {
 	cors := strings.Split(n.config.Http.CorsDomain, ",")
 	vhosts := strings.Split(n.config.Http.VirtualHosts, ",")
 	go rpc.NewHTTPServer(cors, vhosts, handler).Serve(listener)
-	log.Info("HTTP endpoint opened", "url", fmt.Sprintf("http://%s", endpoint), "cors", cors, "vhosts", vhosts)
+	log.Info("HTTP endpoint opened", "url", fmt.Sprintf("http://%s", endpoint), "cors", strings.Join(cors, ","), "vhosts", strings.Join(vhosts, ","))
 	// All listeners booted successfully
 	n.httpEndpoint = endpoint
 	n.httpListener = listener
@@ -194,19 +195,19 @@ func (n *Node) apis() []rpc.API {
 		{
 			Namespace: "chain",
 			Version:   "1.0",
-			Service:   NewPublicChainAPI(n.chain),
+			Service:   NewPublicChainAPI(n),
 			Public:    true,
 		},
 		{
 			Namespace: "account",
 			Version:   "1.0",
-			Service:   NewPublicAccountAPI(n.accMan),
+			Service:   NewPublicAccountAPI(n),
 			Public:    true,
 		},
 		{
 			Namespace: "account",
 			Version:   "1.0",
-			Service:   NewPrivateAccountAPI(n.accMan),
+			Service:   NewPrivateAccountAPI(n),
 			Public:    false,
 		},
 		{
