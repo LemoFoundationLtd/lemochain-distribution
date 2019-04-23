@@ -476,11 +476,6 @@ func (pm *ProtocolManager) handleGetBlocksMsg(msg *p2p.Msg, p *peer) error {
 
 // handleConfirmsMsg handle received block's confirm package message
 func (pm *ProtocolManager) handleConfirmsMsg(msg *p2p.Msg) error {
-	var confirms coreNetwork.BlockConfirms
-	if err := msg.Decode(&confirms); err != nil {
-		return fmt.Errorf("handleConfirmsMsg error: %v", err)
-	}
-	go pm.chain.ReceiveConfirms(confirms)
 	return nil
 }
 
