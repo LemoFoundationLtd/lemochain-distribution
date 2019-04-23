@@ -177,7 +177,7 @@ func (a *PublicAccountAPI) GetAsset(assetCode common.Hash) (*types.Asset, error)
 	return assetDao.Get(assetCode)
 }
 
-func (a *PublicAccountAPI) GetMateData(assetId common.Hash) (*database.MateData, error) {
+func (a *PublicAccountAPI) GetMetaData(assetId common.Hash) (*database.MateData, error) {
 	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
