@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
-	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/flock"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNode "github.com/LemoFoundationLtd/lemochain-core/main/node"
@@ -58,9 +57,7 @@ func New(cfg *config.Config) (*Node, error) {
 		return nil, err
 	}
 	chain.InitDeputyNodes(dm, bc)
-	h := common.Hash{}
-	copy(h[:], cfg.GenesisHash)
-	pm := NewProtocolManager(uint16(cfg.ChainID), h, cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
+	pm := NewProtocolManager(uint16(cfg.ChainID), cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
 
 	n := &Node{
 		config: cfg,

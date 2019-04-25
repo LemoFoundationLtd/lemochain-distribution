@@ -58,7 +58,6 @@ type RpcWS struct {
 type Config struct {
 	ChainID     uint32  `json:"chainID"        gencodec:"required"`
 	DeputyCount uint32  `json:"deputyCount"    gencodec:"required"`
-	GenesisHash []byte  `json:"genesisHash"    gencodec:"required"`
 	DataDir     string  `json:"serverDataDir"  gencodec:"required"`
 	DbUri       string  `json:"dbUri"          gencodec:"required"` // sample: root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4
 	DbDriver    string  `json:"dbDriver"       gencodec:"required"`
@@ -75,7 +74,6 @@ type Config struct {
 type ConfigMarshaling struct {
 	ChainID     hexutil.Uint32
 	DeputyCount hexutil.Uint32
-	GenesisHash hexutil.Bytes
 	LogLevel    hexutil.Uint32
 }
 
@@ -106,9 +104,6 @@ func ReadConfigFile() (*Config, error) {
 func check(cfg *Config) error {
 	if cfg.ChainID == 0 {
 		return ErrChainId
-	}
-	if len(cfg.GenesisHash) != 32 {
-		return ErrGenesisHash
 	}
 	if cfg.LogLevel > 5 {
 		return ErrLogLevel

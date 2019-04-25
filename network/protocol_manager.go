@@ -24,7 +24,6 @@ type ProtocolManager struct {
 	chainID        uint16
 	nodeVersion    uint32
 	chain          coreNetwork.BlockChain
-	genesisHash    common.Hash
 	blockCache     *coreNetwork.BlockCache
 	txCh           chan *types.Transaction
 	rcvBlocksCh    chan types.Blocks
@@ -38,12 +37,11 @@ type ProtocolManager struct {
 	quitCh         chan struct{}
 }
 
-func NewProtocolManager(chainID uint16, hash common.Hash, coreNodeID *p2p.NodeID, coreNodeEndpoint string, chain coreNetwork.BlockChain) *ProtocolManager {
+func NewProtocolManager(chainID uint16, coreNodeID *p2p.NodeID, coreNodeEndpoint string, chain coreNetwork.BlockChain) *ProtocolManager {
 	pm := &ProtocolManager{
 		chainID:     chainID,
 		nodeVersion: params.VersionUint(),
 		chain:       chain,
-		genesisHash: hash,
 		dialManager: NewDialManager(coreNodeID, coreNodeEndpoint),
 		blockCache:  coreNetwork.NewBlockCache(),
 		txCh:        make(chan *types.Transaction),
@@ -319,7 +317,7 @@ func (pm *ProtocolManager) handlePeer() {
 func (pm *ProtocolManager) handshake(p *peer) (*ProtocolHandshake, error) {
 	phs := &ProtocolHandshake{
 		ChainID:     pm.chainID,
-		GenesisHash: pm.genesisHash,
+		GenesisHash: common.Hash{},
 		NodeVersion: pm.nodeVersion,
 		LatestStatus: LatestStatus{
 			CurHash:   common.Hash{},
