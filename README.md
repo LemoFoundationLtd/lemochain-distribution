@@ -3,9 +3,13 @@
 # LemoChain-Distribution
 
 
-#### 配置文件
-- 文件名：distribution-config.json，且与程序可执行文件放在同级目录下；
-- 文件范例
+[中文版](https://github.com/LemoFoundationLtd/lemochain-distribution/blob/master/README_zh.md)   
+[English](https://github.com/LemoFoundationLtd/lemochain-distribution/blob/master/README.md)
+
+
+#### configuration file
+- File name：`distribution-config.json`,and must be put at the same level with the program executable directory;
+- example
 ```
 {
 	"chainID": 100,
@@ -30,24 +34,24 @@
 	}
 }
 ```
-其中：
-- chainID: 与要连接的lemochain-core一致
-- deputyCount: 与要连接的lemochain-core一致
-- serverDataDir： 区块等相关数据存放目录
-- dbUri： 数据库连接字符串
-- dbDriver： 数据库类型
-- logLevel： 日志输出级别
-- coreNode： 被连接的lemochain-core相关NodeID与IP端口，配置格式为`nodeId@IP:Port`.
-- http、webSocket：rpc配置
-- http.disable： 是否禁止http服务，默认开启
-- http.port：http服务器端口
-- http.corsDomain：http跨域允许列表,配置为"*"表示允许所有域名访问。
-- http.virtualHosts：http跨域限制预检请求允许列表，配置为"*"表示允许所有域名访问。
-- http.listenAddress：http监听地址
-- webSocket.disable：是否禁止websocket服务，默认开启
-- webSocket.port；websocket服务器端口
-- webSocket.corsDomain：websocket允许跨域域名列表
-- webSocket.listenAddress：websocket监听地址
+instructions:
+- `chainID` must be the same as lemochain-core.
+- `deputyCount` must be the same as lemochain-core.
+- `serverDataDir` store randomly generated nodekey.
+- `dbUri` database uri.
+- `dbDriver` database type.
+- `logLevel` log output level.
+- `coreNode` will connect the lemochain-core.
+- `http and webSocket` rpc config.
+- `http.disable` whether to turn on HTTP, default on.
+- `http.port` http port
+- `http.corsDomain` cross-domain allow list, all domain access is allowed if it is '*'.
+- `http.virtualHosts` precheck request permission list, all domain access is allowed if it is '*'.
+- `http.listenAddress` http listen address.
+- `webSocket.disable` whether to turn on webSocket, default on.
+- `webSocket.port` websocket port.
+- `webSocket.corsDomain` the same as http.
+- `webSocket.listenAddress` websocket listen address.
 
-#### 启动流程
-- 启动流程请转到[wiki](https://github.com/LemoFoundationLtd/lemochain-distribution/wiki).
+#### start
+- Please click on the [wiki](https://github.com/LemoFoundationLtd/lemochain-distribution/wiki).
