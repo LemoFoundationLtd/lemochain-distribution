@@ -440,7 +440,12 @@ func (pm *ProtocolManager) handleBlockHashMsg(msg *p2p.Msg, p *peer) error {
 		return nil
 	}
 	// judge whether the init synchronization has been completed
-	firstSyncHeight := pm.corePeer.GetFirstSyncHeight()
+	var firstSyncHeight uint32
+	if pm.corePeer != nil {
+		firstSyncHeight = pm.corePeer.GetFirstSyncHeight()
+	} else {
+		return errors.New("corePeer == nil")
+	}
 	if pm.chain.GetBlockByHeight(firstSyncHeight) == nil && hashMsg.Height > firstSyncHeight {
 		return nil
 	}
