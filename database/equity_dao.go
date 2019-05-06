@@ -220,9 +220,9 @@ func (dao *EquityDao) insert(addr common.Address, assetEquity *types.AssetEquity
 	}
 }
 
-func (dao *EquityDao) update(addr common.Address, assetEquity *types.AssetEquity, version int) (error) {
-	sql := "UPDATE t_equity SET equity = ?, version = version + 1 WHERE id = ? AND version = ?"
-	result, err := dao.engine.Exec(sql,  assetEquity.Equity.Int64(), assetEquity.AssetId.Hex(), version)
+func (dao *EquityDao) update(addr common.Address, assetEquity *types.AssetEquity, version int) error {
+	sql := "UPDATE t_equity SET equity = ?, version = version + 1 WHERE id = ? AND version = ? AND addr = ?"
+	result, err := dao.engine.Exec(sql,  assetEquity.Equity.Int64(), assetEquity.AssetId.Hex(), version, addr.Hex())
 	if err != nil {
 		return err
 	}
