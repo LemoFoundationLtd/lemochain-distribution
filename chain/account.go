@@ -295,6 +295,7 @@ func (account *ReBuildAccount) SetAssetCodeTotalSupply(code common.Hash, val *bi
 		}
 
 		tmp.TotalSupply.Set(val)
+		account.AssetCodes[code] = tmp
 		return nil
 	} else {
 		asset.TotalSupply.Set(val)
