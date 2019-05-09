@@ -85,6 +85,7 @@ func ReadConfigFile() (*Config, error) {
 		// Try to read from relative path
 		filePath = configName
 	}
+	log.Infof("Load config file: %s", filePath)
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, errors.New(err.Error() + "\r\n" + ConfigGuideUrl)

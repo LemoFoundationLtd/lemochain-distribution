@@ -203,7 +203,7 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 			pLstHeight := pm.corePeer.LatestStatus().StaHeight
 
 			for _, b := range blocks {
-				// block is stale
+				// block is exist
 				if pm.chain.StableBlock() != nil && (b.Height() <= pm.chain.StableBlock().Height() || pm.chain.HasBlock(b.Hash())) {
 					continue
 				}
@@ -211,13 +211,12 @@ func (pm *ProtocolManager) rcvBlockLoop() {
 				if b.Height() > pLstHeight && pm.corePeer != nil {
 					pm.corePeer.UpdateStatus(b.Height(), b.Hash())
 				}
-				// local chain has this block
+				// parent block exist
 				if b.Height() == 0 || pm.chain.HasBlock(b.ParentHash()) {
-					// log.Debugf("will insert Block height: %d", b.Height())
 					pm.insertBlock(b)
 				} else {
 					pm.blockCache.Add(b)
-					log.Debugf("receive a new block (height = %d), but don't find his parentBlock.", b.Height())
+					log.Debugf("receive a new block (height = %d), but its parent block is not found.", b.Height())
 				}
 			}
 		case <-queueTimer.C:
@@ -268,9 +267,10 @@ func (pm *ProtocolManager) reqStatusLoop() {
 
 // insertBlock insert block
 func (pm *ProtocolManager) insertBlock(b *types.Block) {
-	if err := pm.chain.InsertChain(b, true); err != nil {
+	if err := pm.chain.InsertBlock(b); err != nil {
 		log.Errorf("insertBlock failed: %v", err)
 	}
+	pm.blockCache.Remove(b)
 }
 
 // handlePeer handle about peer
@@ -365,7 +365,7 @@ func (pm *ProtocolManager) findSyncFrom(rStatus *LatestStatus) (uint32, error) {
 
 	if curBlock.Height() >= rStatus.StaHeight {
 		if !pm.chain.HasBlock(rStatus.StaHash) {
-			return 0, errors.New("error: core peer not on the same chain")
+			return 0, errors.New("core peer is not on the same chain")
 		}
 	}
 	from = curBlock.Height() + 1

@@ -424,13 +424,13 @@ func (t *PublicTxAPI) CreateAsset(prv string, category, decimals uint32, isReple
 	profile[types.AssetName] = "Demo Token"
 	profile[types.AssetSymbol] = "DT"
 	profile[types.AssetDescription] = "test issue token"
-	profile[types.AssetStop] = "false"
+	profile[types.AssetFreeze] = "false"
 	profile[types.AssetSuggestedGasLimit] = "60000"
 	asset := &types.Asset{
 		Category:        category,
 		IsDivisible:     isDivisible,
 		AssetCode:       common.Hash{},
-		Decimals:        decimals,
+		Decimal:         decimals,
 		TotalSupply:     big.NewInt(100000),
 		IsReplenishable: isReplenishable,
 		Issuer:          issuer,

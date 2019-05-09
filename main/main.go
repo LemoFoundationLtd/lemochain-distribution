@@ -18,7 +18,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("config file read error: %v", err))
 	}
-	coreNode.InitLogConfig(int(cfg.LogLevel))
+	coreNode.InitLogConfig(int(cfg.LogLevel) - 1)
 	if err := startServer(cfg); err != nil {
 		panic(fmt.Sprintf("start server failed: %v", err))
 	}

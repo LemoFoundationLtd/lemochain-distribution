@@ -197,7 +197,7 @@ func (bc *BlockChain) updateDeputyNodes(block *types.Block) {
 	}
 }
 
-func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) error {
+func (bc *BlockChain) InsertBlock(block *types.Block) error {
 	bc.mux.Lock()
 	defer bc.mux.Unlock()
 
@@ -222,18 +222,16 @@ func (bc *BlockChain) InsertChain(block *types.Block, isSynchronising bool) erro
 }
 
 // not used. just for implement interface
-func (bc *BlockChain) SetStableBlock(hash common.Hash, height uint32) error {
-	return nil
-}
-func (bc *BlockChain) Verify(block *types.Block) error {
-	return nil
-}
-func (bc *BlockChain) ReceiveConfirm(info *coreNet.BlockConfirmData) error {
-	return nil
-}
 func (bc *BlockChain) GetConfirms(query *coreNet.GetConfirmInfo) []types.SignData {
 	return nil
 }
-func (bc *BlockChain) ReceiveConfirms(pack coreNet.BlockConfirms) {
-
+func (bc *BlockChain) InsertConfirm(info *coreNet.BlockConfirmData) {
+}
+func (bc *BlockChain) IsConfirmEnough(block *types.Block) bool {
+	return true
+}
+func (bc *BlockChain) ReceiveStableConfirms(pack coreNet.BlockConfirms) {
+}
+func (bc *BlockChain) IsInBlackList(b *types.Block) bool {
+	return false
 }
