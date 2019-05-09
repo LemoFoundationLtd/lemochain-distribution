@@ -253,7 +253,7 @@ func (pm *ProtocolManager) reqStatusLoop() {
 		case <-pm.forceSyncTimer.C:
 			log.Info("reqStatusLoop: start forceSync block")
 			if pm.corePeer != nil {
-				if pm.chain.CurrentBlock() == nil || pm.corePeer.LatestStatus().StaHeight > pm.chain.CurrentBlock().Height() {
+				if pm.chain.StableBlock() == nil || pm.corePeer.LatestStatus().StaHeight > pm.chain.StableBlock().Height() {
 					sta := pm.corePeer.LatestStatus()
 					pm.forceSyncBlock(&sta, pm.corePeer)
 				} else {
@@ -342,7 +342,7 @@ func (pm *ProtocolManager) handshake(p *peer) (*ProtocolHandshake, error) {
 
 // forceSyncBlock force to sync block
 func (pm *ProtocolManager) forceSyncBlock(status *LatestStatus, p *peer) {
-	if pm.chain.CurrentBlock() != nil && status.StaHeight <= pm.chain.CurrentBlock().Height() {
+	if pm.chain.StableBlock() != nil && status.StaHeight <= pm.chain.StableBlock().Height() {
 		return
 	}
 	from, err := pm.findSyncFrom(status)
@@ -357,7 +357,7 @@ func (pm *ProtocolManager) forceSyncBlock(status *LatestStatus, p *peer) {
 // findSyncFrom find height of which sync from
 func (pm *ProtocolManager) findSyncFrom(rStatus *LatestStatus) (uint32, error) {
 	var from uint32
-	curBlock := pm.chain.CurrentBlock()
+	curBlock := pm.chain.StableBlock()
 	// staBlock := pm.chain.StableBlock()
 	if curBlock == nil {
 		return 0, nil
@@ -450,7 +450,7 @@ func (pm *ProtocolManager) handleBlockHashMsg(msg *p2p.Msg, p *peer) error {
 		return nil
 	}
 
-	currentHeight := pm.chain.CurrentBlock().Height()
+	currentHeight := pm.chain.StableBlock().Height()
 	// update status
 	p.UpdateStatus(hashMsg.Height, hashMsg.Hash)
 	go p.RequestBlocks(currentHeight+1, hashMsg.Height)

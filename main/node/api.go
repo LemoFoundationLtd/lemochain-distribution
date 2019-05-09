@@ -213,7 +213,7 @@ type candidateListResMarshaling struct {
 
 // GetDeputyNodeList get deputy nodes who are in charge
 func (c *PublicChainAPI) GetDeputyNodeList() []string {
-	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.CurrentBlock().Height())
+	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
 
 	var result []string
 	for _, n := range nodes {

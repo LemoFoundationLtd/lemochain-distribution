@@ -16,7 +16,6 @@ import (
 type BlockChain struct {
 	chainID      uint16
 	dm           *deputynode.Manager
-	currentBlock atomic.Value // latest block in current chain
 	stableBlock  atomic.Value // latest stable block in current chain
 	genesisBlock *types.Block // genesis block
 
@@ -66,11 +65,6 @@ func (bc *BlockChain) DeputyManager() *deputynode.Manager {
 	return bc.dm
 }
 
-// Lock call by miner
-func (bc *BlockChain) Lock() *sync.Mutex {
-	return &bc.mux
-}
-
 func (bc *BlockChain) loadGenesis() error {
 	blockDao := database.NewBlockDao(bc.dbEngine)
 	block, err := blockDao.GetBlockByHeight(0)
@@ -97,7 +91,6 @@ func (bc *BlockChain) loadLastState() error {
 		log.Errorf("Can't load last state: %v", err)
 		return err
 	}
-	bc.currentBlock.Store(block)
 	bc.stableBlock.Store(block)
 	return nil
 }
@@ -139,28 +132,16 @@ func (bc *BlockChain) GetBlockByHeight(height uint32) *types.Block {
 	}
 
 	// not genesis block
-	block := bc.currentBlock.Load().(*types.Block)
-	currentBlockHeight := block.Height()
 	stableBlockHeight := bc.stableBlock.Load().(*types.Block).Height()
-	var err error
 	if stableBlockHeight >= height {
 		blockDao := database.NewBlockDao(bc.dbEngine)
-		block, err = blockDao.GetBlockByHeight(height)
+		block, err := blockDao.GetBlockByHeight(height)
 		if err != nil {
 			panic(fmt.Sprintf("can't get block. height:%d, err: %v", height, err))
 		}
-	} else if height <= currentBlockHeight {
-		for i := currentBlockHeight - height; i > 0; i-- {
-			blockDao := database.NewBlockDao(bc.dbEngine)
-			block, err = blockDao.GetBlock(block.ParentHash())
-			if err != nil {
-				panic(fmt.Sprintf("can't get block. height:%d, err: %v", height, err))
-			}
-		}
-	} else {
-		return nil
+		return block
 	}
-	return block
+	return nil
 }
 
 func (bc *BlockChain) GetBlockByHash(hash common.Hash) *types.Block {
@@ -175,10 +156,7 @@ func (bc *BlockChain) GetBlockByHash(hash common.Hash) *types.Block {
 
 // CurrentBlock get latest current block
 func (bc *BlockChain) CurrentBlock() *types.Block {
-	if bc.currentBlock.Load() == nil {
-		return nil
-	}
-	return bc.currentBlock.Load().(*types.Block)
+	return bc.StableBlock()
 }
 
 // StableBlock get latest stable block
@@ -214,7 +192,6 @@ func (bc *BlockChain) InsertBlock(block *types.Block) error {
 		return err
 	} else {
 		bc.updateDeputyNodes(block)
-		bc.currentBlock.Store(block)
 		bc.stableBlock.Store(block)
 		log.Debugf("insert block success. Height:%d", block.Height())
 		return nil
@@ -222,15 +199,9 @@ func (bc *BlockChain) InsertBlock(block *types.Block) error {
 }
 
 // not used. just for implement interface
-func (bc *BlockChain) GetConfirms(query *coreNet.GetConfirmInfo) []types.SignData {
-	return nil
-}
 func (bc *BlockChain) InsertConfirm(info *coreNet.BlockConfirmData) {
 }
-func (bc *BlockChain) IsConfirmEnough(block *types.Block) bool {
-	return true
-}
-func (bc *BlockChain) ReceiveStableConfirms(pack coreNet.BlockConfirms) {
+func (bc *BlockChain) InsertStableConfirms(pack coreNet.BlockConfirms) {
 }
 func (bc *BlockChain) IsInBlackList(b *types.Block) bool {
 	return false
