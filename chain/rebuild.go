@@ -10,8 +10,8 @@ import (
 )
 
 type ReBuildEngine struct {
-	Store database.DBEngine
-	Block     *types.Block
+	Store                database.DBEngine
+	Block                *types.Block
 	ReBuildAccountsCache map[common.Address]*ReBuildAccount
 }
 
@@ -59,7 +59,7 @@ func (engine *ReBuildEngine) ReBuild() error {
 	}
 
 	err := engine.resolve()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -136,7 +136,7 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 	}
 
 	to := tx.To()
-	if to == nil{
+	if to == nil {
 		return txDao.Set(&database.Tx{
 			THash:  tx.Hash(),
 			BHash:  engine.Block.Hash(),
@@ -146,7 +146,7 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 			Tx:     tx,
 			St:     time.Now().UnixNano() / 1000000,
 		})
-	}else{
+	} else {
 		return txDao.Set(&database.Tx{
 			THash:  tx.Hash(),
 			BHash:  engine.Block.Hash(),
@@ -192,7 +192,7 @@ func (engine *ReBuildEngine) saveAssetCode(asset *types.Asset) error {
 	return assetCodeDao.Set(asset)
 }
 
-func (engine *ReBuildEngine) saveAssetIdBatch(address common.Address, assetIds map[common.Hash]*types.IssueAsset) (error) {
+func (engine *ReBuildEngine) saveAssetIdBatch(address common.Address, assetIds map[common.Hash]*types.IssueAsset) error {
 	for k, v := range assetIds {
 		err := engine.saveAssetId(address, k, v)
 		if err != nil {
@@ -202,17 +202,17 @@ func (engine *ReBuildEngine) saveAssetIdBatch(address common.Address, assetIds m
 	return nil
 }
 
-func (engine *ReBuildEngine) saveAssetId(address common.Address, hash common.Hash, assetId *types.IssueAsset) (error) {
-	assetIdDao := database.NewMateDataDao(engine.Store)
-	return assetIdDao.Set(&database.MateData{
-		Id:hash,
-		Code:assetId.AssetCode,
-		Owner:address,
-		Profile:assetId.MetaData,
+func (engine *ReBuildEngine) saveAssetId(address common.Address, hash common.Hash, assetId *types.IssueAsset) error {
+	assetIdDao := database.NewMetaDataDao(engine.Store)
+	return assetIdDao.Set(&database.MetaData{
+		Id:      hash,
+		Code:    assetId.AssetCode,
+		Owner:   address,
+		Profile: assetId.MetaData,
 	})
 }
 
-func (engine *ReBuildEngine) saveEquitiesBatch(address common.Address, equities map[common.Hash]*types.AssetEquity) (error) {
+func (engine *ReBuildEngine) saveEquitiesBatch(address common.Address, equities map[common.Hash]*types.AssetEquity) error {
 	for _, v := range equities {
 		err := engine.saveEquity(address, v)
 		if err != nil {
@@ -227,7 +227,7 @@ func (engine *ReBuildEngine) saveEquity(address common.Address, equity *types.As
 	return equityDao.Set(address, equity)
 }
 
-func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, error){
+func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, error) {
 	assetDao := database.NewAssetDao(engine.Store)
 	txes := engine.Block.Txs
 	assetIds := make(map[common.Hash]*types.IssueAsset)
@@ -243,15 +243,15 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 			err := json.Unmarshal(extendData, issueAsset)
 			if err != nil {
 				return nil, err
-			}else{
+			} else {
 				asset, err := assetDao.Get(issueAsset.AssetCode)
-				if err != nil{
+				if err != nil {
 					return nil, err
 				}
 
 				if asset.Category == types.Asset01 {
 					assetIds[asset.AssetCode] = issueAsset
-				}else{
+				} else {
 					assetIds[tx.Hash()] = issueAsset
 				}
 			}
@@ -263,7 +263,7 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 
 func (engine *ReBuildEngine) resolve() error {
 	assetIds, err := engine.getAssetIds()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -282,8 +282,8 @@ func (engine *ReBuildEngine) resolve() error {
 			for ak, av := range v.AssetIds {
 				AssetCode := assetIds[ak].AssetCode
 				AssetIdCache[ak] = &types.IssueAsset{
-					AssetCode:AssetCode,
-					MetaData:av,
+					AssetCode: AssetCode,
+					MetaData:  av,
 				}
 			}
 
@@ -327,7 +327,7 @@ func (engine *ReBuildEngine) resolve() error {
 		if v.IsCancelCandidate {
 			candidateDao := database.NewCandidateDao(engine.Store)
 			err := candidateDao.Del(v.Address)
-			if err != nil{
+			if err != nil {
 				return err
 			}
 		}

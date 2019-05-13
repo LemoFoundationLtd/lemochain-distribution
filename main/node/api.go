@@ -177,12 +177,12 @@ func (a *PublicAccountAPI) GetAsset(assetCode common.Hash) (*types.Asset, error)
 	return assetDao.Get(assetCode)
 }
 
-func (a *PublicAccountAPI) GetMetaData(assetId common.Hash) (*database.MateData, error) {
+func (a *PublicAccountAPI) GetMetaData(assetId common.Hash) (*database.MetaData, error) {
 	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
-	mateDataDao := database.NewMateDataDao(dbEngine)
-	return mateDataDao.Get(assetId)
+	metaDataDao := database.NewMetaDataDao(dbEngine)
+	return metaDataDao.Get(assetId)
 }
 
 //go:generate gencodec -type CandidateInfo -out gen_candidate_info_json.go

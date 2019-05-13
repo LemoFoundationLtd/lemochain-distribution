@@ -352,8 +352,8 @@ func (account *ReBuildAccount) SetAssetCodeState(code common.Hash, key string, v
 }
 
 func (account *ReBuildAccount) GetAssetId(id common.Hash) (string, error) {
-	mateDataDao := database.NewMateDataDao(account.Store)
-	val, err := mateDataDao.Get(id)
+	metaDataDao := database.NewMetaDataDao(account.Store)
+	val, err := metaDataDao.Get(id)
 	if err != nil {
 		return "", err
 	} else {
@@ -364,13 +364,13 @@ func (account *ReBuildAccount) GetAssetId(id common.Hash) (string, error) {
 func (account *ReBuildAccount) GetAssetIdState(id common.Hash) (string, error) {
 	assetId, ok := account.AssetIds[id]
 	if !ok {
-		mateDataDao := database.NewMateDataDao(account.Store)
-		mateData, err := mateDataDao.Get(id)
+		metaDataDao := database.NewMetaDataDao(account.Store)
+		metaData, err := metaDataDao.Get(id)
 		if err != nil {
 			return "", err
 		} else {
-			account.AssetIds[id] = mateData.Profile
-			return mateData.Profile, nil
+			account.AssetIds[id] = metaData.Profile
+			return metaData.Profile, nil
 		}
 	} else {
 		return assetId, nil

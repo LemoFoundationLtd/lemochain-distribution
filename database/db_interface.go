@@ -5,9 +5,9 @@ import (
 )
 
 func ErrIsNotExist(err error) bool {
-	if err == sql.ErrNoRows{
+	if err == sql.ErrNoRows {
 		return true
-	}else{
+	} else {
 		return false
 	}
 }
@@ -35,7 +35,7 @@ func NewMySqlDB(driver string, dns string) *MySqlDB {
 	}
 }
 
-func (db *MySqlDB) GetDB() *sql.DB{
+func (db *MySqlDB) GetDB() *sql.DB {
 	return db.engine
 }
 
@@ -65,7 +65,7 @@ func (db *MySqlDB) Clear() error {
 		return err
 	}
 
-	_, err = db.engine.Exec("DELETE FROM t_mate_data")
+	_, err = db.engine.Exec("DELETE FROM t_meta_data")
 	if err != nil {
 		return err
 	}

@@ -3,49 +3,49 @@ package database
 import (
 	"database/sql"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
-	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
-	"time"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
 	"strconv"
+	"time"
 )
 
-//go:generate gencodec -type MateData -out gen_matedata_json.go
-type MateData struct {
+//go:generate gencodec -type MetaData -out gen_metadata_json.go
+type MetaData struct {
 	Id      common.Hash    `json:"id" gencodec:"required"`
 	Code    common.Hash    `json:"code" gencodec:"required"`
 	Owner   common.Address `json:"owner" gencodec:"required"`
 	Profile string         `json:"profile" gencodec:"required"`
 }
 
-type MateDataDao struct {
+type MetaDataDao struct {
 	engine *sql.DB
 }
 
-func NewMateDataDao(db DBEngine) (*MateDataDao) {
-	return &MateDataDao{engine: db.GetDB()}
+func NewMetaDataDao(db DBEngine) *MetaDataDao {
+	return &MetaDataDao{engine: db.GetDB()}
 }
 
-func (dao *MateDataDao) Set(mateData *MateData) (error) {
-	if mateData == nil {
-		log.Errorf("set mate data.mate data is nil.")
+func (dao *MetaDataDao) Set(metaData *MetaData) error {
+	if metaData == nil {
+		log.Errorf("set meta data.meta data is nil.")
 		return ErrArgInvalid
 	}
 
-	result, version, err := dao.query(mateData.Id)
+	result, version, err := dao.query(metaData.Id)
 	if err != nil {
 		return err
 	}
 
 	if result == nil {
-		return dao.insert(mateData)
+		return dao.insert(metaData)
 	} else {
-		return dao.update(mateData, version)
+		return dao.update(metaData, version)
 	}
 }
 
-func (dao *MateDataDao) Get(id common.Hash) (*MateData, error) {
+func (dao *MetaDataDao) Get(id common.Hash) (*MetaData, error) {
 	if id == (common.Hash{}) {
-		log.Errorf("get mate data.id is common.hash{}")
+		log.Errorf("get meta data.id is common.hash{}")
 		return nil, ErrArgInvalid
 	}
 
@@ -55,14 +55,14 @@ func (dao *MateDataDao) Get(id common.Hash) (*MateData, error) {
 	}
 
 	if data == nil {
-		log.Errorf("get mate data.id is not exist.")
+		log.Errorf("get meta data.id is not exist.")
 		return nil, ErrNotExist
 	} else {
 		return data, nil
 	}
 }
 
-func (dao *MateDataDao) decodeProfile(val []byte) (string, error) {
+func (dao *MetaDataDao) decodeProfile(val []byte) (string, error) {
 	var profile string
 	err := rlp.DecodeBytes(val, &profile)
 	if err != nil {
@@ -72,8 +72,8 @@ func (dao *MateDataDao) decodeProfile(val []byte) (string, error) {
 	}
 }
 
-func (dao *MateDataDao) buildMateDataBatch(rows *sql.Rows) ([]*MateData, error) {
-	result := make([]*MateData, 0)
+func (dao *MetaDataDao) buildMetaDataBatch(rows *sql.Rows) ([]*MetaData, error) {
+	result := make([]*MetaData, 0)
 	for rows.Next() {
 		var id string
 		var code string
@@ -89,25 +89,25 @@ func (dao *MateDataDao) buildMateDataBatch(rows *sql.Rows) ([]*MateData, error) 
 		if err != nil {
 			return nil, err
 		} else {
-			mateData := &MateData{
+			metaData := &MetaData{
 				Code:    common.HexToHash(code),
 				Id:      common.HexToHash(id),
 				Owner:   common.HexToAddress(addr),
 				Profile: profile,
 			}
-			result = append(result, mateData)
+			result = append(result, metaData)
 		}
 	}
 	return result, nil
 }
 
-func (dao *MateDataDao) GetPage(addr common.Address, start, limit int) ([]*MateData, error) {
+func (dao *MetaDataDao) GetPage(addr common.Address, start, limit int) ([]*MetaData, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get mate by page.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get meta by page.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
-	sql := "SELECT id, code, addr, attrs, utc_st FROM t_mate_data WHERE addr = ? ORDER BY utc_st LIMIT ?, ?"
+	sql := "SELECT id, code, addr, attrs, utc_st FROM t_meta_data WHERE addr = ? ORDER BY utc_st LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sql)
 	if err != nil {
 		return nil, err
@@ -118,16 +118,16 @@ func (dao *MateDataDao) GetPage(addr common.Address, start, limit int) ([]*MateD
 		return nil, err
 	}
 
-	return dao.buildMateDataBatch(rows)
+	return dao.buildMetaDataBatch(rows)
 }
 
-func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*MateData, int, error) {
+func (dao *MetaDataDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*MetaData, int, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get mate by page with total.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get meta by page with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
-	sql := "SELECT count(*) as cnt FROM t_mate_data WHERE addr = ?"
+	sql := "SELECT count(*) as cnt FROM t_meta_data WHERE addr = ?"
 	row := dao.engine.QueryRow(sql, addr.Hex())
 	var cnt int
 	err := row.Scan(&cnt)
@@ -143,13 +143,13 @@ func (dao *MateDataDao) GetPageWithTotal(addr common.Address, start, limit int) 
 	}
 }
 
-func (dao *MateDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*MateData, error) {
+func (dao *MetaDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*MetaData, error) {
 	if code == (common.Hash{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get mate by code.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get meta by code.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
-	sql := "SELECT  id, code, addr, attrs, utc_st FROM t_mate_data WHERE code = ? ORDER BY utc_st LIMIT ?, ?"
+	sql := "SELECT  id, code, addr, attrs, utc_st FROM t_meta_data WHERE code = ? ORDER BY utc_st LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sql)
 	if err != nil {
 		return nil, err
@@ -160,16 +160,16 @@ func (dao *MateDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*Ma
 		return nil, err
 	}
 
-	return dao.buildMateDataBatch(rows)
+	return dao.buildMetaDataBatch(rows)
 }
 
-func (dao *MateDataDao) GetPageByCodeWithTotal(code common.Hash, start, limit int) ([]*MateData, int, error) {
+func (dao *MetaDataDao) GetPageByCodeWithTotal(code common.Hash, start, limit int) ([]*MetaData, int, error) {
 	if code == (common.Hash{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get mate by code with total.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get meta by code with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
-	sql := "SELECT count(*) as cnt FROM t_mate_data WHERE code = ?"
+	sql := "SELECT count(*) as cnt FROM t_meta_data WHERE code = ?"
 	row := dao.engine.QueryRow(sql, code.Hex())
 	var cnt int
 	err := row.Scan(&cnt)
@@ -185,8 +185,8 @@ func (dao *MateDataDao) GetPageByCodeWithTotal(code common.Hash, start, limit in
 	}
 }
 
-func (dao *MateDataDao) query(id common.Hash) (*MateData, int, error) {
-	sql := "SELECT code, addr, attrs, version FROM t_mate_data WHERE id = ?"
+func (dao *MetaDataDao) query(id common.Hash) (*MetaData, int, error) {
+	sql := "SELECT code, addr, attrs, version FROM t_meta_data WHERE id = ?"
 	row := dao.engine.QueryRow(sql, id.Hex())
 	var code string
 	var addr string
@@ -201,7 +201,7 @@ func (dao *MateDataDao) query(id common.Hash) (*MateData, int, error) {
 		return nil, -1, err
 	}
 
-	result := &MateData{
+	result := &MetaData{
 		Id:    id,
 		Code:  common.HexToHash(code),
 		Owner: common.HexToAddress(addr),
@@ -210,21 +210,21 @@ func (dao *MateDataDao) query(id common.Hash) (*MateData, int, error) {
 	var profile string
 	err = rlp.DecodeBytes(val, &profile)
 	if err != nil {
-		return nil, - 1, err
+		return nil, -1, err
 	} else {
 		result.Profile = profile
 		return result, version, nil
 	}
 }
 
-func (dao *MateDataDao) insert(mateData *MateData) (error) {
-	sql := "INSERT INTO t_mate_data(code, id, addr, attrs, version, utc_st)VALUES(?,?,?,?,?,?)"
-	val, err := rlp.EncodeToBytes(mateData.Profile)
+func (dao *MetaDataDao) insert(metaData *MetaData) error {
+	sql := "INSERT INTO t_meta_data(code, id, addr, attrs, version, utc_st)VALUES(?,?,?,?,?,?)"
+	val, err := rlp.EncodeToBytes(metaData.Profile)
 	if err != nil {
 		return err
 	}
 
-	result, err := dao.engine.Exec(sql, mateData.Code.Hex(), mateData.Id.Hex(), mateData.Owner.Hex(), val, 1, time.Now().UnixNano()/1000000)
+	result, err := dao.engine.Exec(sql, metaData.Code.Hex(), metaData.Id.Hex(), metaData.Owner.Hex(), val, 1, time.Now().UnixNano()/1000000)
 	if err != nil {
 		return err
 	}
@@ -235,21 +235,21 @@ func (dao *MateDataDao) insert(mateData *MateData) (error) {
 	}
 
 	if effected != 1 {
-		log.Errorf("update mate data.affected = " + strconv.Itoa(int(effected)))
+		log.Errorf("update meta data.affected = " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
 	} else {
 		return nil
 	}
 }
 
-func (dao *MateDataDao) update(mateData *MateData, version int) (error) {
-	val, err := rlp.EncodeToBytes(mateData.Profile)
+func (dao *MetaDataDao) update(metaData *MetaData, version int) error {
+	val, err := rlp.EncodeToBytes(metaData.Profile)
 	if err != nil {
 		return err
 	}
 
-	sql := "UPDATE t_mate_data SET attrs = ?, version = version + 1 WHERE id = ? AND code = ? AND addr = ? AND version = ?"
-	result, err := dao.engine.Exec(sql, val, mateData.Id.Hex(), mateData.Code.Hex(), mateData.Owner.Hex(), version)
+	sql := "UPDATE t_meta_data SET attrs = ?, version = version + 1 WHERE id = ? AND code = ? AND addr = ? AND version = ?"
+	result, err := dao.engine.Exec(sql, val, metaData.Id.Hex(), metaData.Code.Hex(), metaData.Owner.Hex(), version)
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (dao *MateDataDao) update(mateData *MateData, version int) (error) {
 	}
 
 	if effected != 1 {
-		log.Errorf("update mate data.affected = " + strconv.Itoa(int(effected)))
+		log.Errorf("update meta data.affected = " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
 	} else {
 		return nil
