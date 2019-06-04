@@ -60,6 +60,26 @@ func (account *ReBuildAccount) isCandidate(profile types.Profile) bool {
 	}
 }
 
+func (account *ReBuildAccount) SetSingers(signers types.Signers) error {
+	if len(signers) <= 0 {
+		account.Signers = make(types.Signers, 0)
+	} else {
+		account.Signers = make(types.Signers, 0, len(signers))
+		account.Signers = append(account.Signers, signers...)
+	}
+
+	return nil
+}
+
+func (account *ReBuildAccount) GetSigners() types.Signers {
+	if len(account.Signers) <= 0 {
+		return make(types.Signers, 0)
+	} else {
+		result := make(types.Signers, 0, len(account.Signers))
+		return append(result, account.Signers...)
+	}
+}
+
 func (account *ReBuildAccount) BuildAccountData() *types.AccountData {
 	return &account.AccountData
 }

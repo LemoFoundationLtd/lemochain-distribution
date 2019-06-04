@@ -268,7 +268,7 @@ func (pm *ProtocolManager) reqStatusLoop() {
 // insertBlock insert block
 func (pm *ProtocolManager) insertBlock(b *types.Block) {
 	if err := pm.chain.InsertBlock(b); err != nil {
-		log.Errorf("insertBlock failed: %v", err)
+		log.Errorf("insertBlock [%d] failed: %v", b.Height(), err)
 	}
 	pm.blockCache.Remove(b)
 }

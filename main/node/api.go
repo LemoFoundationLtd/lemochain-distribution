@@ -23,11 +23,11 @@ const (
 )
 
 var (
-	toNameErr         = errors.New("the length of toName field in transaction is out of max length limit")
-	txMessageErr      = errors.New("the length of message field in transaction is out of max length limit")
-	createContractErr = errors.New("the data of create contract transaction can't be null")
-	specialTxErr      = errors.New("the data of special transaction can't be null")
-	txTypeErr         = errors.New("the transaction type does not exit")
+	ErrToName         = errors.New("the length of toName field in transaction is out of max length limit")
+	ErrTxMessage      = errors.New("the length of message field in transaction is out of max length limit")
+	ErrCreateContract = errors.New("the data of create contract transaction can't be null")
+	ErrSpecialTx      = errors.New("the data of special transaction can't be null")
+	ErrTxType         = errors.New("the transaction type does not exit")
 )
 
 // Private
@@ -369,7 +369,7 @@ func (c *PublicChainAPI) GasPriceAdvice() *big.Int {
 }
 
 // GetServerVersion
-func (c *PublicChainAPI) GetServerVersion() string {
+func (c *PublicChainAPI) NodeVersion() string {
 	return params.Version
 }
 
@@ -386,7 +386,7 @@ func NewPublicTxAPI(node *Node) *PublicTxAPI {
 
 // Send send a transaction
 func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
-	err := VerifyTx(tx)
+	err := tx.VerifyTx(t.node.chainID, uint64(time.Now().Unix()))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -395,8 +395,8 @@ func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
 }
 
 // SendReimbursedGasTx gas代付交易 todo 测试使用
-func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string, to, gasPayer common.Address, amount int64, data []byte, txType uint16, toName, message string) (common.Hash, error) {
-	tx := types.NewReimbursementTransaction(to, gasPayer, big.NewInt(amount), data, txType, t.node.chainID, uint64(time.Now().Unix()+1800), toName, message)
+func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string, from, to, gasPayer common.Address, amount int64, data []byte, txType uint16, toName, message string) (common.Hash, error) {
+	tx := types.NewReimbursementTransaction(from, to, gasPayer, big.NewInt(amount), data, txType, t.node.chainID, uint64(time.Now().Unix()+1800), toName, message)
 	senderPriv, _ := crypto.HexToECDSA(senderPrivate)
 	gasPayerPriv, _ := crypto.HexToECDSA(gasPayerPrivate)
 	firstSignTx, err := types.MakeReimbursementTxSigner().SignTx(tx, senderPriv)
@@ -408,7 +408,7 @@ func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string,
 	if err != nil {
 		return common.Hash{}, err
 	}
-	err = VerifyTx(lastSignTx)
+	err = lastSignTx.VerifyTx(t.node.chainID, uint64(time.Now().Unix()))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -440,7 +440,7 @@ func (t *PublicTxAPI) CreateAsset(prv string, category, decimals uint32, isReple
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, coreParams.CreateAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "create asset tx")
+	tx := types.NoReceiverTransaction(issuer, nil, uint64(500000), big.NewInt(1), data, coreParams.CreateAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "create asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -459,8 +459,10 @@ func (t *PublicTxAPI) IssueAsset(prv string, receiver common.Address, assetCode 
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.IssueAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "issue asset tx")
 	private, _ := crypto.HexToECDSA(prv)
+	sender := crypto.PubkeyToAddress(private.PublicKey)
+	tx := types.NewTransaction(sender, receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.IssueAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "issue asset tx")
+
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -479,8 +481,10 @@ func (t *PublicTxAPI) ReplenishAsset(prv string, receiver common.Address, assetC
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.ReplenishAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
 	private, _ := crypto.HexToECDSA(prv)
+	sender := crypto.PubkeyToAddress(private.PublicKey)
+	tx := types.NewTransaction(sender, receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.ReplenishAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
+
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -494,15 +498,16 @@ func (t *PublicTxAPI) ModifyAsset(prv string, assetCode common.Hash) (common.Has
 	info["name"] = "Modify"
 	info["stop"] = "true"
 	modify := &types.ModifyAssetInfo{
-		AssetCode: assetCode,
-		Info:      info,
+		AssetCode:     assetCode,
+		UpdateProfile: info,
 	}
 	data, err := json.Marshal(modify)
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NoReceiverTransaction(nil, uint64(500000), big.NewInt(1), data, coreParams.ModifyAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "modify asset tx")
 	private, _ := crypto.HexToECDSA(prv)
+	sender := crypto.PubkeyToAddress(private.PublicKey)
+	tx := types.NoReceiverTransaction(sender, nil, uint64(500000), big.NewInt(1), data, coreParams.ModifyAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "modify asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -521,44 +526,14 @@ func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, ass
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NewTransaction(to, amount, uint64(500000), big.NewInt(1), data, coreParams.TransferAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
 	private, _ := crypto.HexToECDSA(prv)
+	sender := crypto.PubkeyToAddress(private.PublicKey)
+	tx := types.NewTransaction(sender, to, amount, uint64(500000), big.NewInt(1), data, coreParams.TransferAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
 	}
 	return t.SendTx(signTx)
-}
-
-// VerifyTx transaction parameter verification
-func VerifyTx(tx *types.Transaction) error {
-	toNameLength := len(tx.ToName())
-	if toNameLength > MaxTxToNameLength {
-		log.Errorf("the length of toName field in transaction is out of max length limit. toName length = %d. max length limit = %d. ", toNameLength, MaxTxToNameLength)
-		return toNameErr
-	}
-	txMessageLength := len(tx.Message())
-	if txMessageLength > MaxTxMessageLength {
-		log.Errorf("the length of message field in transaction is out of max length limit. message length = %d. max length limit = %d. ", txMessageLength, MaxTxMessageLength)
-		return txMessageErr
-	}
-	switch tx.Type() {
-	case coreParams.OrdinaryTx:
-		if tx.To() == nil {
-			if len(tx.Data()) == 0 {
-				return createContractErr
-			}
-		}
-	case coreParams.VoteTx:
-	case coreParams.RegisterTx, coreParams.CreateAssetTx, coreParams.IssueAssetTx, coreParams.ReplenishAssetTx, coreParams.ModifyAssetTx, coreParams.TransferAssetTx:
-		if len(tx.Data()) == 0 {
-			return specialTxErr
-		}
-	default:
-		log.Errorf("the transaction type does not exit . type = %v", tx.Type())
-		return txTypeErr
-	}
-	return nil
 }
 
 // // PendingTx
@@ -657,7 +632,7 @@ func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, 
 	}, nil
 }
 
-// ReadContract read variables in a contract includes the return value of a function.
+// // ReadContract read variables in a contract includes the return value of a function.
 // func (t *PublicTxAPI) ReadContract(to *common.Address, data hexutil.Bytes) (string, error) {
 // 	ctx := context.Background()
 // 	result, _, err := t.doCall(ctx, to, coreParams.OrdinaryTx, data, 5*time.Second)

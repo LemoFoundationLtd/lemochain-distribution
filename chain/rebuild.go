@@ -2,6 +2,7 @@ package chain
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -126,15 +127,7 @@ func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) error {
 func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 	txDao := database.NewTxDao(engine.Store)
 
-	from, err := tx.From()
-	if err != nil {
-		return err
-	}
-
-	if err != nil {
-		return err
-	}
-
+	from := tx.From()
 	to := tx.To()
 	if to == nil {
 		return txDao.Set(&database.Tx{
@@ -247,6 +240,9 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 				asset, err := assetDao.Get(issueAsset.AssetCode)
 				if err != nil {
 					return nil, err
+				}
+				if asset == nil {
+					return nil, errors.New("asset is nil")
 				}
 
 				if asset.Category == types.Asset01 {

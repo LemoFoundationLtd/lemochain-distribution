@@ -132,7 +132,11 @@ func (bc *BlockChain) GetBlockByHeight(height uint32) *types.Block {
 	}
 
 	// not genesis block
-	stableBlockHeight := bc.stableBlock.Load().(*types.Block).Height()
+	stable := bc.StableBlock()
+	if stable == nil { // 还未初始化到genesis block
+		return nil
+	}
+	stableBlockHeight := stable.Height()
 	if stableBlockHeight >= height {
 		blockDao := database.NewBlockDao(bc.dbEngine)
 		block, err := blockDao.GetBlockByHeight(height)
