@@ -21,8 +21,7 @@ import (
 )
 
 type Node struct {
-	config  *config.Config
-	chainID uint16
+	config *config.Config
 
 	db     protocol.ChainDB
 	accMan *account.Manager
