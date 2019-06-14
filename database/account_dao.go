@@ -2,10 +2,10 @@ package database
 
 import (
 	"database/sql"
-	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
-	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
 	"math/big"
 )
 

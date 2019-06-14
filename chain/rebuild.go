@@ -130,6 +130,48 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 	from := tx.From()
 	to := tx.To()
 	if to == nil {
+		if tx.Type() == params.BoxTx {
+			txs, err := types.GetBox(tx.Data())
+			if err != nil {
+				return err
+			}else{
+				for _, v := range txs.SubTxList {
+					var ret error
+					if v.To() == nil{
+						ret = txDao.Set(&database.Tx{
+							THash:  v.Hash(),
+							PHash:  tx.Hash(),
+							BHash:  engine.Block.Hash(),
+							Height: engine.Block.Height(),
+							From:   v.From(),
+							To:     common.Address{},
+							Tx:     v,
+							Flag:   int(v.Type()),
+							St:     time.Now().UnixNano() / 1000000,
+						})
+					}else{
+						ret = txDao.Set(&database.Tx{
+							THash:  v.Hash(),
+							PHash:  tx.Hash(),
+							BHash:  engine.Block.Hash(),
+							Height: engine.Block.Height(),
+							From:   v.From(),
+							To:     *(v.To()),
+							Tx:     v,
+							Flag:   int(v.Type()),
+							St:     time.Now().UnixNano() / 1000000,
+						})
+					}
+
+					if ret != nil{
+						return err
+					}else{
+						continue
+					}
+				}
+			}
+		}
+
 		return txDao.Set(&database.Tx{
 			THash:  tx.Hash(),
 			BHash:  engine.Block.Hash(),
@@ -137,6 +179,7 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 			From:   from,
 			To:     common.Address{},
 			Tx:     tx,
+			Flag:   int(tx.Type()),
 			St:     time.Now().UnixNano() / 1000000,
 		})
 	} else {
@@ -147,6 +190,7 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 			From:   from,
 			To:     *to,
 			Tx:     tx,
+			Flag:   int(tx.Type()),
 			St:     time.Now().UnixNano() / 1000000,
 		})
 	}
