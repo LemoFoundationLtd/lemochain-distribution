@@ -386,7 +386,7 @@ func NewPublicTxAPI(node *Node) *PublicTxAPI {
 
 // Send send a transaction
 func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
-	err := tx.VerifyTx(t.node.chainID, uint64(time.Now().Unix()))
+	err := tx.VerifyTx(t.node.chain.ChainID(), uint64(time.Now().Unix()))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -396,7 +396,7 @@ func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
 
 // SendReimbursedGasTx gas代付交易 todo 测试使用
 func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string, from, to, gasPayer common.Address, amount int64, data []byte, txType uint16, toName, message string) (common.Hash, error) {
-	tx := types.NewReimbursementTransaction(from, to, gasPayer, big.NewInt(amount), data, txType, t.node.chainID, uint64(time.Now().Unix()+1800), toName, message)
+	tx := types.NewReimbursementTransaction(from, to, gasPayer, big.NewInt(amount), data, txType, t.node.chain.ChainID(), uint64(time.Now().Unix()+1800), toName, message)
 	senderPriv, _ := crypto.HexToECDSA(senderPrivate)
 	gasPayerPriv, _ := crypto.HexToECDSA(gasPayerPrivate)
 	firstSignTx, err := types.MakeReimbursementTxSigner().SignTx(tx, senderPriv)
@@ -408,7 +408,7 @@ func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string,
 	if err != nil {
 		return common.Hash{}, err
 	}
-	err = lastSignTx.VerifyTx(t.node.chainID, uint64(time.Now().Unix()))
+	err = lastSignTx.VerifyTx(t.node.chain.ChainID(), uint64(time.Now().Unix()))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -440,7 +440,7 @@ func (t *PublicTxAPI) CreateAsset(prv string, category, decimals uint32, isReple
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := types.NoReceiverTransaction(issuer, nil, uint64(500000), big.NewInt(1), data, coreParams.CreateAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "create asset tx")
+	tx := types.NoReceiverTransaction(issuer, nil, uint64(500000), big.NewInt(1), data, coreParams.CreateAssetTx, t.node.chain.ChainID(), uint64(time.Now().Unix()+30*60), "", "create asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -461,7 +461,7 @@ func (t *PublicTxAPI) IssueAsset(prv string, receiver common.Address, assetCode 
 	}
 	private, _ := crypto.HexToECDSA(prv)
 	sender := crypto.PubkeyToAddress(private.PublicKey)
-	tx := types.NewTransaction(sender, receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.IssueAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "issue asset tx")
+	tx := types.NewTransaction(sender, receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.IssueAssetTx, t.node.chain.ChainID(), uint64(time.Now().Unix()+30*60), "", "issue asset tx")
 
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -483,7 +483,7 @@ func (t *PublicTxAPI) ReplenishAsset(prv string, receiver common.Address, assetC
 	}
 	private, _ := crypto.HexToECDSA(prv)
 	sender := crypto.PubkeyToAddress(private.PublicKey)
-	tx := types.NewTransaction(sender, receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.ReplenishAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
+	tx := types.NewTransaction(sender, receiver, nil, uint64(500000), big.NewInt(1), data, coreParams.ReplenishAssetTx, t.node.chain.ChainID(), uint64(time.Now().Unix()+30*60), "", "replenish asset tx")
 
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
@@ -507,7 +507,7 @@ func (t *PublicTxAPI) ModifyAsset(prv string, assetCode common.Hash) (common.Has
 	}
 	private, _ := crypto.HexToECDSA(prv)
 	sender := crypto.PubkeyToAddress(private.PublicKey)
-	tx := types.NoReceiverTransaction(sender, nil, uint64(500000), big.NewInt(1), data, coreParams.ModifyAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "modify asset tx")
+	tx := types.NoReceiverTransaction(sender, nil, uint64(500000), big.NewInt(1), data, coreParams.ModifyAssetTx, t.node.chain.ChainID(), uint64(time.Now().Unix()+30*60), "", "modify asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
@@ -528,7 +528,7 @@ func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, ass
 	}
 	private, _ := crypto.HexToECDSA(prv)
 	sender := crypto.PubkeyToAddress(private.PublicKey)
-	tx := types.NewTransaction(sender, to, amount, uint64(500000), big.NewInt(1), data, coreParams.TransferAssetTx, t.node.chainID, uint64(time.Now().Unix()+30*60), "", "trading asset tx")
+	tx := types.NewTransaction(sender, to, amount, uint64(500000), big.NewInt(1), data, coreParams.TransferAssetTx, t.node.chain.ChainID(), uint64(time.Now().Unix()+30*60), "", "trading asset tx")
 	signTx, err := types.MakeSigner().SignTx(tx, private)
 	if err != nil {
 		return common.Hash{}, err
