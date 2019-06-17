@@ -79,7 +79,7 @@ type ConfigMarshaling struct {
 
 func ReadConfigFile() (*Config, error) {
 	// Try to read from system temp directory
-	dir := filepath.Dir(os.Args[1])
+	dir := filepath.Dir(os.Args[0])
 	filePath := filepath.Join(dir, configName)
 	if _, err := os.Stat(filePath); err != nil {
 		// Try to read from relative path
