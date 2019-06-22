@@ -555,6 +555,7 @@ func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error
 	} else {
 		return &store.VTransactionDetail{
 			BlockHash: tx.BHash,
+			PHash:     tx.PHash,
 			Height:    tx.Height,
 			Tx:        tx.Tx,
 			St:        tx.St,
@@ -592,8 +593,9 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 	result := make([]*store.VTransaction, len(txes))
 	for index := 0; index < len(txes); index++ {
 		result[index] = &store.VTransaction{
-			Tx: txes[index].Tx,
-			St: txes[index].St,
+			Tx:    txes[index].Tx,
+			PHash: txes[index].PHash,
+			St:    txes[index].St,
 		}
 	}
 
@@ -621,8 +623,9 @@ func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, 
 	result := make([]*store.VTransaction, len(txes))
 	for index := 0; index < len(txes); index++ {
 		result[index] = &store.VTransaction{
-			Tx: txes[index].Tx,
-			St: txes[index].St,
+			Tx:    txes[index].Tx,
+			PHash: txes[index].PHash,
+			St:    txes[index].St,
 		}
 	}
 
