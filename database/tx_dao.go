@@ -2,23 +2,24 @@ package database
 
 import (
 	"database/sql"
-	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
-	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
+	"github.com/LemoFoundationLtd/lemochain-core/common/rlp"
 	"time"
 )
 
 type Tx struct {
-	BHash  common.Hash
-	Height uint32
-	PHash  common.Hash
-	THash  common.Hash
-	From   common.Address
-	To     common.Address
-	Tx     *types.Transaction
-	Flag   int
-	St     int64
+	BHash       common.Hash
+	Height      uint32
+	PHash       common.Hash
+	THash       common.Hash
+	From        common.Address
+	To          common.Address
+	Tx          *types.Transaction
+	Flag        int
+	St          int64  // 交易保存进db的时间
+	PackageTime uint32 // 打包交易的时间
 }
 
 type TxDao struct {
@@ -67,8 +68,9 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 	var taddr string
 	var flag int
 	var st int64
+	var packageTime uint32
 	var val []byte
-	err := row.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st)
+	err := row.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st, &packageTime)
 	if ErrIsNotExist(err) {
 		return nil, ErrNotExist
 	}
@@ -82,15 +84,16 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 		return nil, err
 	} else {
 		return &Tx{
-			THash: common.HexToHash(thash),
-			PHash: common.HexToHash(phash),
-			BHash: common.HexToHash(bhash),
-			Height:uint32(height),
-			From:  common.HexToAddress(faddr),
-			To:    common.HexToAddress(taddr),
-			Tx:    tx,
-			Flag:  flag,
-			St:    st,
+			BHash:       common.HexToHash(bhash),
+			Height:      uint32(height),
+			PHash:       common.HexToHash(phash),
+			THash:       common.HexToHash(thash),
+			From:        common.HexToAddress(faddr),
+			To:          common.HexToAddress(taddr),
+			Tx:          tx,
+			Flag:        flag,
+			St:          st,
+			PackageTime: packageTime,
 		}, nil
 	}
 }
@@ -116,8 +119,9 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 		var taddr string
 		var flag int
 		var st int64
+		var packageTime uint32
 		var val []byte
-		err := rows.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st)
+		err := rows.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st, &packageTime)
 		if err != nil {
 			return nil, err
 		}
@@ -127,15 +131,16 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 			return nil, err
 		} else {
 			result = append(result, &Tx{
-				THash: common.HexToHash(thash),
-				PHash: common.HexToHash(phash),
-				BHash: common.HexToHash(bhash),
-				Height:uint32(height),
-				From:  common.HexToAddress(faddr),
-				To:    common.HexToAddress(taddr),
-				Tx:    tx,
-				Flag:  flag,
-				St:    st,
+				BHash:       common.HexToHash(bhash),
+				Height:      uint32(height),
+				PHash:       common.HexToHash(phash),
+				THash:       common.HexToHash(thash),
+				From:        common.HexToAddress(faddr),
+				To:          common.HexToAddress(taddr),
+				Tx:          tx,
+				Flag:        flag,
+				St:          st,
+				PackageTime: packageTime,
 			})
 		}
 	}

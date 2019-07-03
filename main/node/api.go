@@ -554,16 +554,15 @@ func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error
 		return nil, err
 	} else {
 		return &store.VTransactionDetail{
-			BlockHash: tx.BHash,
-			PHash:     tx.PHash,
-			Height:    tx.Height,
-			Tx:        tx.Tx,
-			St:        tx.St,
+			BlockHash:   tx.BHash,
+			PHash:       tx.PHash,
+			Height:      tx.Height,
+			Tx:          tx.Tx,
+			PackageTime: tx.PackageTime,
 		}, nil
 	}
 }
 
-//
 //go:generate gencodec -type TxListRes --field-override txListResMarshaling -out gen_tx_list_res_json.go
 type TxListRes struct {
 	VTransactions []*store.VTransaction `json:"txList" gencodec:"required"`
@@ -593,9 +592,9 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 	result := make([]*store.VTransaction, len(txes))
 	for index := 0; index < len(txes); index++ {
 		result[index] = &store.VTransaction{
-			Tx:    txes[index].Tx,
-			PHash: txes[index].PHash,
-			St:    txes[index].St,
+			Tx:          txes[index].Tx,
+			PHash:       txes[index].PHash,
+			PackageTime: txes[index].PackageTime,
 		}
 	}
 
@@ -623,9 +622,9 @@ func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, 
 	result := make([]*store.VTransaction, len(txes))
 	for index := 0; index < len(txes); index++ {
 		result[index] = &store.VTransaction{
-			Tx:    txes[index].Tx,
-			PHash: txes[index].PHash,
-			St:    txes[index].St,
+			Tx:          txes[index].Tx,
+			PHash:       txes[index].PHash,
+			PackageTime: txes[index].PackageTime,
 		}
 	}
 
