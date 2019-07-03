@@ -3,6 +3,7 @@ package database
 import (
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 

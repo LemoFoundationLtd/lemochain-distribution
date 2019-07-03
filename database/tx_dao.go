@@ -36,7 +36,7 @@ func (dao *TxDao) Set(tx *Tx) error {
 		return ErrArgInvalid
 	}
 
-	sql := "REPLACE INTO t_tx(thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st)VALUES(?,?,?,?,?,?,?,?,?)"
+	sql := "REPLACE INTO t_tx(thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time)VALUES(?,?,?,?,?,?,?,?,?,?)"
 
 	val, err := rlp.EncodeToBytes(tx.Tx)
 	if err != nil {
@@ -44,7 +44,7 @@ func (dao *TxDao) Set(tx *Tx) error {
 	}
 
 	height := int64(tx.Height)
-	_, err = dao.engine.Exec(sql, tx.THash.Hex(), tx.PHash.Hex(), tx.BHash.Hex(), height, tx.From.Hex(), tx.To.Hex(), val, tx.Tx.Type(), time.Now().UnixNano()/1000000)
+	_, err = dao.engine.Exec(sql, tx.THash.Hex(), tx.PHash.Hex(), tx.BHash.Hex(), height, tx.From.Hex(), tx.To.Hex(), val, tx.Tx.Type(), time.Now().UnixNano()/1000000, tx.PackageTime)
 	if err != nil {
 		return err
 	} else {
@@ -58,7 +58,7 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 		return nil, ErrArgInvalid
 	}
 
-	sql := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st FROM t_tx WHERE thash = ?"
+	sql := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE thash = ?"
 	row := dao.engine.QueryRow(sql, hash.Hex())
 	var thash string
 	var phash string
@@ -153,7 +153,7 @@ func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st FROM t_tx WHERE faddr = ? or taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE faddr = ? or taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -195,7 +195,7 @@ func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, l
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st FROM t_tx WHERE (faddr = ? OR taddr = ?) AND utc_st > ? AND utc_st < ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE (faddr = ? OR taddr = ?) AND utc_st > ? AND utc_st < ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -237,7 +237,7 @@ func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st FROM t_tx WHERE faddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st ,package_time FROM t_tx WHERE faddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -279,7 +279,7 @@ func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) 
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st FROM t_tx WHERE taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
