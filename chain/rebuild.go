@@ -134,38 +134,40 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 			txs, err := types.GetBox(tx.Data())
 			if err != nil {
 				return err
-			}else{
+			} else {
 				for _, v := range txs.SubTxList {
 					var ret error
-					if v.To() == nil{
+					if v.To() == nil {
 						ret = txDao.Set(&database.Tx{
-							THash:  v.Hash(),
-							PHash:  tx.Hash(),
-							BHash:  engine.Block.Hash(),
-							Height: engine.Block.Height(),
-							From:   v.From(),
-							To:     common.Address{},
-							Tx:     v,
-							Flag:   int(v.Type()),
-							St:     time.Now().UnixNano() / 1000000,
+							BHash:       engine.Block.Hash(),
+							Height:      engine.Block.Height(),
+							PHash:       tx.Hash(),
+							THash:       v.Hash(),
+							From:        v.From(),
+							To:          common.Address{},
+							Tx:          v,
+							Flag:        int(v.Type()),
+							St:          time.Now().UnixNano() / 1000000,
+							PackageTime: engine.Block.Time(),
 						})
-					}else{
+					} else {
 						ret = txDao.Set(&database.Tx{
-							THash:  v.Hash(),
-							PHash:  tx.Hash(),
-							BHash:  engine.Block.Hash(),
-							Height: engine.Block.Height(),
-							From:   v.From(),
-							To:     *(v.To()),
-							Tx:     v,
-							Flag:   int(v.Type()),
-							St:     time.Now().UnixNano() / 1000000,
+							THash:       v.Hash(),
+							PHash:       tx.Hash(),
+							BHash:       engine.Block.Hash(),
+							Height:      engine.Block.Height(),
+							From:        v.From(),
+							To:          *(v.To()),
+							Tx:          v,
+							Flag:        int(v.Type()),
+							St:          time.Now().UnixNano() / 1000000,
+							PackageTime: engine.Block.Time(),
 						})
 					}
 
-					if ret != nil{
+					if ret != nil {
 						return err
-					}else{
+					} else {
 						continue
 					}
 				}
@@ -173,25 +175,29 @@ func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
 		}
 
 		return txDao.Set(&database.Tx{
-			THash:  tx.Hash(),
-			BHash:  engine.Block.Hash(),
-			Height: engine.Block.Height(),
-			From:   from,
-			To:     common.Address{},
-			Tx:     tx,
-			Flag:   int(tx.Type()),
-			St:     time.Now().UnixNano() / 1000000,
+			BHash:       engine.Block.Hash(),
+			Height:      engine.Block.Height(),
+			PHash:       common.Hash{},
+			THash:       tx.Hash(),
+			From:        from,
+			To:          common.Address{},
+			Tx:          tx,
+			Flag:        int(tx.Type()),
+			St:          time.Now().UnixNano() / 1000000,
+			PackageTime: engine.Block.Time(),
 		})
 	} else {
 		return txDao.Set(&database.Tx{
-			THash:  tx.Hash(),
-			BHash:  engine.Block.Hash(),
-			Height: engine.Block.Height(),
-			From:   from,
-			To:     *to,
-			Tx:     tx,
-			Flag:   int(tx.Type()),
-			St:     time.Now().UnixNano() / 1000000,
+			BHash:       engine.Block.Hash(),
+			Height:      engine.Block.Height(),
+			PHash:       common.Hash{},
+			THash:       tx.Hash(),
+			From:        from,
+			To:          *to,
+			Tx:          tx,
+			Flag:        int(tx.Type()),
+			St:          time.Now().UnixNano() / 1000000,
+			PackageTime: engine.Block.Time(),
 		})
 	}
 

@@ -1,10 +1,10 @@
 package database
 
 import (
-	"testing"
-	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestBlockDao_GetBlock(t *testing.T) {
@@ -19,7 +19,6 @@ func TestBlockDao_GetBlock(t *testing.T) {
 	block.Header = &types.Header{Height: 1}
 	err := blockDao.SetBlock(hash, block)
 	assert.NoError(t, err)
-
 
 	result, err := blockDao.GetBlock(hash)
 	assert.NoError(t, err)
