@@ -197,6 +197,10 @@ func (bc *BlockChain) InsertBlock(block *types.Block) error {
 	} else {
 		bc.updateDeputyNodes(block)
 		bc.stableBlock.Store(block)
+		if block.Height() == 0 {
+			bc.genesisBlock = block
+		}
+
 		log.Debugf("insert block success. Height:%d", block.Height())
 		return nil
 	}
