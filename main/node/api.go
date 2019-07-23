@@ -215,10 +215,20 @@ type candidateListResMarshaling struct {
 func (c *PublicChainAPI) GetDeputyNodeList() []string {
 	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
 
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
+	defer dbEngine.Close()
+
+	accountDao := database.NewAccountDao(dbEngine)
+
 	var result []string
 	for _, n := range nodes {
-		candidateAcc := c.node.accMan.GetCanonicalAccount(n.MinerAddress)
-		profile := candidateAcc.GetCandidate()
+		// candidateAcc := c.node.accMan.GetCanonicalAccount(n.MinerAddress)
+		candidateAcc, err := accountDao.Get(n.MinerAddress)
+		if err != nil {
+			log.Errorf("Get minerAddress accountData error: %v", err)
+			continue
+		}
+		profile := candidateAcc.Candidate.Profile
 		host := profile[types.CandidateKeyHost]
 		port := profile[types.CandidateKeyPort]
 		nodeAddrString := fmt.Sprintf("%x@%s:%s", n.NodeID, host, port)
