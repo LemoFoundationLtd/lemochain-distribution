@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/transaction"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
+	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"time"
 )
@@ -53,12 +55,12 @@ func (engine *ReBuildEngine) ReBuild() error {
 	logs := engine.Block.ChangeLogs
 	if len(logs) > 0 {
 		for _, cl := range logs {
-			if err := cl.Redo(engine); err != nil {
+			if err := cl.Redo(engine); err != nil { // 通过changelog生成account的对应状态
 				return err
 			}
 		}
 	}
-
+	//
 	err := engine.resolve()
 	if err != nil {
 		return err
@@ -124,84 +126,148 @@ func (engine *ReBuildEngine) saveTxBatch(txes []*types.Transaction) error {
 	return nil
 }
 
-func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
-	txDao := database.NewTxDao(engine.Store)
+// sealDbTx 组装需要存储到db中的Tx
+func (engine *ReBuildEngine) sealDbTx(PHash, assetCode, assetId common.Hash, tx *types.Transaction) *database.Tx {
+	to := common.Address{}
+	if tx.To() != nil {
+		to = *tx.To()
+	}
+	return &database.Tx{
+		BHash:       engine.Block.Hash(),
+		Height:      engine.Block.Height(),
+		PHash:       PHash,
+		THash:       tx.Hash(),
+		From:        tx.From(),
+		To:          to,
+		Tx:          tx,
+		Flag:        int(tx.Type()),
+		St:          time.Now().UnixNano() / 1000000,
+		PackageTime: engine.Block.Time(),
+		AssetCode:   assetCode,
+		AssetId:     assetId,
+	}
+}
 
-	from := tx.From()
-	to := tx.To()
-	if to == nil {
-		if tx.Type() == params.BoxTx {
-			txs, err := types.GetBox(tx.Data())
+// filterSaveAssetTx 过滤出资产交易并保存资产类型的交易到db,如果是资产类型的交易返回true
+// 对于参数PHash,如果过滤的是BoxTx中的子交易，则PHash为BoxTx的hash,除此之外PHash == common.Hash{}
+func (engine *ReBuildEngine) filterSaveAssetTx(PHash common.Hash, tx *types.Transaction, txDao *database.TxDao) (error, bool) {
+	switch tx.Type() {
+
+	case params.CreateAssetTx:
+		assetCode := tx.Hash()
+		dbTx := engine.sealDbTx(PHash, assetCode, common.Hash{}, tx)
+		return txDao.Set(dbTx), true
+
+	case params.IssueAssetTx:
+		// 1. 获取资产交易中的assetCode和assetId
+		issueAsset, err := types.GetIssueAsset(tx.Data())
+		if err != nil {
+			return err, true
+		}
+		assetCode := issueAsset.AssetCode
+		assetDao := database.NewAssetDao(engine.Store)
+		asset, err := assetDao.Get(assetCode)
+		if err != nil {
+			return err, true
+		}
+		AssType := asset.Category
+		var assetId common.Hash
+		if AssType == types.Asset01 {
+			assetId = assetCode
+		} else if AssType == types.Asset02 || AssType == types.Asset03 { // ERC721 or ERC721+20
+			assetId = tx.Hash()
+		} else {
+			log.Errorf("Assert's Category not exist ,Category = %d ", AssType)
+			return transaction.ErrAssetCategory, true
+		}
+		// 2. 保存交易进数据库
+		dbTx := engine.sealDbTx(PHash, assetCode, assetId, tx)
+		return txDao.Set(dbTx), true
+
+	case params.ReplenishAssetTx:
+		// 1. 获取资产交易中的assetCode和assetId
+		repl, err := types.GetReplenishAsset(tx.Data())
+		if err != nil {
+			return err, true
+		}
+		// 2. 保存交易进数据库
+		dbTx := engine.sealDbTx(PHash, repl.AssetCode, repl.AssetId, tx)
+		return txDao.Set(dbTx), true
+
+	case params.ModifyAssetTx:
+		// 1. 获取资产交易中的assetCode
+		modifyInfo, err := types.GetModifyAssetInfo(tx.Data())
+		if err != nil {
+			return err, true
+		}
+		assetCode := modifyInfo.AssetCode
+		// 2. 保存交易进数据库
+		dbTx := engine.sealDbTx(PHash, assetCode, common.Hash{}, tx)
+		return txDao.Set(dbTx), true
+
+	case params.TransferAssetTx:
+		// 1. 获取资产交易中的assetId
+		tradingAsset, err := types.GetTradingAsset(tx.Data())
+		if err != nil {
+			log.Errorf("Unmarshal transfer asset data err: %s", err)
+			return err, true
+		}
+		assetId := tradingAsset.AssetId
+		// 2. 保存交易进数据库
+		dbTx := engine.sealDbTx(PHash, common.Hash{}, assetId, tx)
+		return txDao.Set(dbTx), true
+
+	default:
+		return nil, false
+	}
+}
+
+func (engine *ReBuildEngine) filterSaveBoxTx(boxTx *types.Transaction, txDao *database.TxDao) error {
+	if boxTx.Type() != params.BoxTx {
+		return errors.New("Must be box tx type ")
+	}
+	// 1 保存箱子中的子交易
+	if box, err := types.GetBox(boxTx.Data()); err == nil {
+		for _, subTx := range box.SubTxList {
+			// 过滤资产相关的交易
+			err, isExist := engine.filterSaveAssetTx(boxTx.Hash(), subTx, txDao)
 			if err != nil {
 				return err
-			} else {
-				for _, v := range txs.SubTxList {
-					var ret error
-					if v.To() == nil {
-						ret = txDao.Set(&database.Tx{
-							BHash:       engine.Block.Hash(),
-							Height:      engine.Block.Height(),
-							PHash:       tx.Hash(),
-							THash:       v.Hash(),
-							From:        v.From(),
-							To:          common.Address{},
-							Tx:          v,
-							Flag:        int(v.Type()),
-							St:          time.Now().UnixNano() / 1000000,
-							PackageTime: engine.Block.Time(),
-						})
-					} else {
-						ret = txDao.Set(&database.Tx{
-							THash:       v.Hash(),
-							PHash:       tx.Hash(),
-							BHash:       engine.Block.Hash(),
-							Height:      engine.Block.Height(),
-							From:        v.From(),
-							To:          *(v.To()),
-							Tx:          v,
-							Flag:        int(v.Type()),
-							St:          time.Now().UnixNano() / 1000000,
-							PackageTime: engine.Block.Time(),
-						})
-					}
-
-					if ret != nil {
-						return err
-					} else {
-						continue
-					}
+			}
+			if !isExist { // 不是资产类型的交易,单独执行保存操作
+				if err := txDao.Set(engine.sealDbTx(boxTx.Hash(), common.Hash{}, common.Hash{}, boxTx)); err != nil {
+					return err
 				}
 			}
 		}
-
-		return txDao.Set(&database.Tx{
-			BHash:       engine.Block.Hash(),
-			Height:      engine.Block.Height(),
-			PHash:       common.Hash{},
-			THash:       tx.Hash(),
-			From:        from,
-			To:          common.Address{},
-			Tx:          tx,
-			Flag:        int(tx.Type()),
-			St:          time.Now().UnixNano() / 1000000,
-			PackageTime: engine.Block.Time(),
-		})
 	} else {
-		return txDao.Set(&database.Tx{
-			BHash:       engine.Block.Hash(),
-			Height:      engine.Block.Height(),
-			PHash:       common.Hash{},
-			THash:       tx.Hash(),
-			From:        from,
-			To:          *to,
-			Tx:          tx,
-			Flag:        int(tx.Type()),
-			St:          time.Now().UnixNano() / 1000000,
-			PackageTime: engine.Block.Time(),
-		})
+		return err
+	}
+	// 2 保存箱子本身
+	if err := txDao.Set(engine.sealDbTx(common.Hash{}, common.Hash{}, common.Hash{}, boxTx)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (engine *ReBuildEngine) saveTx(tx *types.Transaction) error {
+	txDao := database.NewTxDao(engine.Store)
+	// 1. 过滤资产类型的交易
+	err, isExist := engine.filterSaveAssetTx(common.Hash{}, tx, txDao)
+	if err != nil {
+		return err
+	}
+	if isExist {
+		return nil
 	}
 
-	return nil
+	// 2. 过滤箱子交易
+	if tx.Type() == params.BoxTx {
+		return engine.filterSaveBoxTx(tx, txDao)
+	}
+
+	// 3. 其他交易
+	return txDao.Set(engine.sealDbTx(common.Hash{}, common.Hash{}, common.Hash{}, tx))
 }
 
 func (engine *ReBuildEngine) saveStorageBatch(storage map[common.Hash][]byte) error {

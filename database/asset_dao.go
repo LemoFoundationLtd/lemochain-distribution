@@ -10,12 +10,12 @@ import (
 	"time"
 )
 
-type AssetDao struct{
+type AssetDao struct {
 	engine *sql.DB
 }
 
-func NewAssetDao(db DBEngine) (*AssetDao) {
-	return &AssetDao{engine:db.GetDB()}
+func NewAssetDao(db DBEngine) *AssetDao {
+	return &AssetDao{engine: db.GetDB()}
 }
 
 func (dao *AssetDao) Set(asset *types.Asset) error {
@@ -26,13 +26,13 @@ func (dao *AssetDao) Set(asset *types.Asset) error {
 
 	code := asset.AssetCode
 	result, ver, err := dao.query(code)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	if result == nil {
 		return dao.insert(asset)
-	}else{
+	} else {
 		return dao.update(asset, ver)
 	}
 }
@@ -44,20 +44,20 @@ func (dao *AssetDao) Get(code common.Hash) (*types.Asset, error) {
 	}
 
 	asset, _, err := dao.query(code)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return asset, nil
 	}
 }
 
-func (dao *AssetDao) decodeAsset(val []byte)(*types.Asset, error) {
+func (dao *AssetDao) decodeAsset(val []byte) (*types.Asset, error) {
 	var asset types.Asset
 	asset.Profile = make(types.Profile)
 	err := rlp.DecodeBytes(val, &asset)
-	if err != nil{
+	if err != nil {
 		return nil, err
-	}else{
+	} else {
 		return &asset, nil
 	}
 }
@@ -73,9 +73,9 @@ func (dao *AssetDao) buildAssetBatch(rows *sql.Rows) ([]*types.Asset, error) {
 		}
 
 		asset, err := dao.decodeAsset(val)
-		if err != nil{
+		if err != nil {
 			return nil, err
-		}else{
+		} else {
 			result = append(result, asset)
 		}
 	}
@@ -83,7 +83,7 @@ func (dao *AssetDao) buildAssetBatch(rows *sql.Rows) ([]*types.Asset, error) {
 }
 
 func (dao *AssetDao) GetPage(addr common.Address, start, limit int) ([]*types.Asset, error) {
-	if (addr == (common.Address{}))  || (start < 0) || (limit <= 0) {
+	if (addr == (common.Address{})) || (start < 0) || (limit <= 0) {
 		log.Errorf("get asset by page.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
@@ -94,7 +94,7 @@ func (dao *AssetDao) GetPage(addr common.Address, start, limit int) ([]*types.As
 		return nil, err
 	}
 
-	rows, err := stmt.Query(addr.Hex(), start, start + limit)
+	rows, err := stmt.Query(addr.Hex(), start, start+limit)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (dao *AssetDao) GetPage(addr common.Address, start, limit int) ([]*types.As
 }
 
 func (dao *AssetDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*types.Asset, int, error) {
-	if (addr == (common.Address{}))  || (start < 0) || (limit <= 0) {
+	if (addr == (common.Address{})) || (start < 0) || (limit <= 0) {
 		log.Errorf("get asset by page.addr is common.address{} or start < 0 or stop <= 0")
 		return nil, -1, ErrArgInvalid
 	}
@@ -117,9 +117,9 @@ func (dao *AssetDao) GetPageWithTotal(addr common.Address, start, limit int) ([]
 	}
 
 	assets, err := dao.GetPage(addr, start, limit)
-	if err != nil{
+	if err != nil {
 		return nil, -1, err
-	}else{
+	} else {
 		return assets, cnt, nil
 	}
 }
@@ -139,62 +139,62 @@ func (dao *AssetDao) query(code common.Hash) (*types.Asset, int, error) {
 
 	asset, err := dao.decodeAsset(val)
 	if err != nil {
-		return nil, - 1, err
+		return nil, -1, err
 	}
 
 	return asset, version, nil
 }
 
-func (dao *AssetDao) insert(asset *types.Asset) (error) {
+func (dao *AssetDao) insert(asset *types.Asset) error {
 	val, err := rlp.EncodeToBytes(asset)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	code := asset.AssetCode
 	addr := asset.Issuer
 	sql := "INSERT INTO t_asset(code, addr, attrs, utc_st, version)VALUES(?,?,?,?,?)"
-	result, err := dao.engine.Exec(sql, code.Hex(), addr.Hex(), val, time.Now().UnixNano() / 1000000, 1)
+	result, err := dao.engine.Exec(sql, code.Hex(), addr.Hex(), val, time.Now().UnixNano()/1000000, 1)
 	if err != nil {
 		return err
 	}
 
 	effected, err := result.RowsAffected()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if effected != 1{
+	if effected != 1 {
 		log.Errorf("insert asset.affected = " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
-	}else{
+	} else {
 		return nil
 	}
 }
 
-func (dao *AssetDao) update(asset *types.Asset, version int) (error) {
+func (dao *AssetDao) update(asset *types.Asset, version int) error {
 	val, err := rlp.EncodeToBytes(asset)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
 	code := asset.AssetCode
 	addr := asset.Issuer
 	sql := "UPDATE t_asset SET attrs = ?, version = version + 1 WHERE code = ? AND addr = ? AND version = ?"
-	result, err := dao.engine.Exec(sql,  val, code.Hex(), addr.Hex(), version)
+	result, err := dao.engine.Exec(sql, val, code.Hex(), addr.Hex(), version)
 	if err != nil {
 		return err
 	}
 
 	effected, err := result.RowsAffected()
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
-	if effected != 1{
+	if effected != 1 {
 		log.Errorf("update asset.affected = " + strconv.Itoa(int(effected)))
 		return ErrUnKnown
-	}else{
+	} else {
 		return nil
 	}
 }
