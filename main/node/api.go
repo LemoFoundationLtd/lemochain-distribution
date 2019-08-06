@@ -569,6 +569,8 @@ func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error
 			Height:      tx.Height,
 			Tx:          tx.Tx,
 			PackageTime: tx.PackageTime,
+			AssetCode:   tx.AssetCode,
+			AssetId:     tx.AssetId,
 		}, nil
 	}
 }
@@ -605,6 +607,8 @@ func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int
 			Tx:          txes[index].Tx,
 			PHash:       txes[index].PHash,
 			PackageTime: txes[index].PackageTime,
+			AssetCode:   txes[index].AssetCode,
+			AssetId:     txes[index].AssetId,
 		}
 	}
 
@@ -635,6 +639,39 @@ func (t *PublicTxAPI) GetTxListByTimestamp(lemoAddress string, beginTime int64, 
 			Tx:          txes[index].Tx,
 			PHash:       txes[index].PHash,
 			PackageTime: txes[index].PackageTime,
+			AssetCode:   txes[index].AssetCode,
+			AssetId:     txes[index].AssetId,
+		}
+	}
+
+	return &TxListRes{
+		VTransactions: result,
+		Total:         uint32(total),
+	}, nil
+}
+
+// GetAssetTxList 通过assetCode或者assetId获取与此地址相关的交易列表
+func (t *PublicTxAPI) GetAssetTxList(lemoAddress string, assetCodeOrId common.Hash, index int, size int) (*TxListRes, error) {
+	addr, err := common.StringToAddress(lemoAddress)
+	if err != nil {
+		return nil, err
+	}
+	dbEngine := database.NewMySqlDB(t.node.config.DbDriver, t.node.config.DbUri)
+	defer dbEngine.Close()
+
+	txDao := database.NewTxDao(dbEngine)
+	txes, total, err := txDao.GetByAddressAndAssetCodeOrAssetIdWithTotal(addr, assetCodeOrId, index, size)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*store.VTransaction, len(txes))
+	for index := 0; index < len(txes); index++ {
+		result[index] = &store.VTransaction{
+			Tx:          txes[index].Tx,
+			PHash:       txes[index].PHash,
+			PackageTime: txes[index].PackageTime,
+			AssetCode:   txes[index].AssetCode,
+			AssetId:     txes[index].AssetId,
 		}
 	}
 

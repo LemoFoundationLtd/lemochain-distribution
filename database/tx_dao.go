@@ -12,14 +12,16 @@ import (
 type Tx struct {
 	BHash       common.Hash
 	Height      uint32
-	PHash       common.Hash
+	PHash       common.Hash // 为箱子交易的时候的箱子的hash
 	THash       common.Hash
 	From        common.Address
 	To          common.Address
 	Tx          *types.Transaction
 	Flag        int
-	St          int64  // 交易保存进db的时间
-	PackageTime uint32 // 打包交易的时间
+	St          int64       // 交易保存进db的时间
+	PackageTime uint32      // 打包交易的时间
+	AssetCode   common.Hash // 如果是资产交易则对应资产code
+	AssetId     common.Hash // 对应资产交易的资产id
 }
 
 type TxDao struct {
@@ -36,7 +38,7 @@ func (dao *TxDao) Set(tx *Tx) error {
 		return ErrArgInvalid
 	}
 
-	sql := "REPLACE INTO t_tx(thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time)VALUES(?,?,?,?,?,?,?,?,?,?)"
+	sql := "REPLACE INTO t_tx(thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id)VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
 
 	val, err := rlp.EncodeToBytes(tx.Tx)
 	if err != nil {
@@ -44,7 +46,7 @@ func (dao *TxDao) Set(tx *Tx) error {
 	}
 
 	height := int64(tx.Height)
-	_, err = dao.engine.Exec(sql, tx.THash.Hex(), tx.PHash.Hex(), tx.BHash.Hex(), height, tx.From.Hex(), tx.To.Hex(), val, tx.Tx.Type(), time.Now().UnixNano()/1000000, tx.PackageTime)
+	_, err = dao.engine.Exec(sql, tx.THash.Hex(), tx.PHash.Hex(), tx.BHash.Hex(), height, tx.From.Hex(), tx.To.Hex(), val, tx.Tx.Type(), time.Now().UnixNano()/1000000, tx.PackageTime, tx.AssetCode.Hex(), tx.AssetId.Hex())
 	if err != nil {
 		return err
 	} else {
@@ -58,7 +60,7 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 		return nil, ErrArgInvalid
 	}
 
-	sql := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE thash = ?"
+	sql := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE thash = ?"
 	row := dao.engine.QueryRow(sql, hash.Hex())
 	var thash string
 	var phash string
@@ -69,8 +71,10 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 	var flag int
 	var st int64
 	var packageTime uint32
+	var assetCode string
+	var assetId string
 	var val []byte
-	err := row.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st, &packageTime)
+	err := row.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st, &packageTime, &assetCode, &assetId)
 	if ErrIsNotExist(err) {
 		return nil, ErrNotExist
 	}
@@ -94,6 +98,8 @@ func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 			Flag:        flag,
 			St:          st,
 			PackageTime: packageTime,
+			AssetCode:   common.HexToHash(assetCode),
+			AssetId:     common.HexToHash(assetId),
 		}, nil
 	}
 }
@@ -120,8 +126,10 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 		var flag int
 		var st int64
 		var packageTime uint32
+		var assetCode string
+		var assetId string
 		var val []byte
-		err := rows.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st, &packageTime)
+		err := rows.Scan(&thash, &phash, &bhash, &height, &faddr, &taddr, &val, &flag, &st, &packageTime, &assetCode, &assetId)
 		if err != nil {
 			return nil, err
 		}
@@ -141,6 +149,8 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 				Flag:        flag,
 				St:          st,
 				PackageTime: packageTime,
+				AssetCode:   common.HexToHash(assetCode),
+				AssetId:     common.HexToHash(assetId),
 			})
 		}
 	}
@@ -153,7 +163,7 @@ func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE faddr = ? or taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE faddr = ? or taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -195,7 +205,7 @@ func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, l
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE (faddr = ? OR taddr = ?) AND utc_st > ? AND utc_st < ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE (faddr = ? OR taddr = ?) AND utc_st > ? AND utc_st < ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -237,7 +247,7 @@ func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st ,package_time FROM t_tx WHERE faddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st ,package_time,asset_code,asset_id FROM t_tx WHERE faddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -279,7 +289,7 @@ func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) 
 		return nil, ErrArgInvalid
 	}
 
-	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time FROM t_tx WHERE taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE taddr = ? ORDER BY utc_st DESC LIMIT ?, ?"
 	stmt, err := dao.engine.Prepare(sqlQuery)
 	if err != nil {
 		return nil, err
@@ -308,6 +318,45 @@ func (dao *TxDao) GetByToWithTotal(addr common.Address, start, limit int) ([]*Tx
 	}
 
 	txes, err := dao.GetByTo(addr, start, limit)
+	if err != nil {
+		return nil, -1, err
+	} else {
+		return txes, cnt, nil
+	}
+}
+
+// 通过 address 和 assetCode或者assetId查询交易
+func (dao *TxDao) GetByAddressAndAssetCodeOrAssetId(addr common.Address, assetCodeOrId common.Hash, start, limit int) ([]*Tx, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by addr.addr is common.address{} or start < 0 or limit <= 0")
+		return nil, ErrArgInvalid
+	}
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE (faddr = ? OR taddr = ?) AND (asset_code = ? OR asset_id = ?) ORDER BY utc_st DESC LIMIT ?, ?"
+	stmt, err := dao.engine.Prepare(sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := stmt.Query(addr.Hex(), addr.Hex(), assetCodeOrId.Hex(), assetCodeOrId.Hex(), start, start+limit)
+	if err != nil {
+		return nil, err
+	}
+	return dao.buildTxBatch(rows)
+}
+
+func (dao *TxDao) GetByAddressAndAssetCodeOrAssetIdWithTotal(addr common.Address, assetCodeOrId common.Hash, start, limit int) ([]*Tx, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by addr with total.addr is common.address{} or start < 0 or limit <= 0")
+		return nil, -1, ErrArgInvalid
+	}
+	sqlTotal := "SELECT count(*) as cnt FROM t_tx WHERE (faddr = ? OR taddr = ?) AND (asset_code = ? OR asset_id = ?)"
+	row := dao.engine.QueryRow(sqlTotal, addr.Hex(), addr.Hex(), assetCodeOrId.Hex(), assetCodeOrId.Hex())
+	var cnt int
+	err := row.Scan(&cnt)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	txes, err := dao.GetByAddressAndAssetCodeOrAssetId(addr, assetCodeOrId, start, limit)
 	if err != nil {
 		return nil, -1, err
 	} else {
