@@ -358,7 +358,7 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 					return nil, err
 				}
 				if asset == nil {
-					return nil, errors.New("asset is nil")
+					return nil, errors.New("asset is nil,get asset by assetId ")
 				}
 
 				if asset.Category == types.Asset01 {
