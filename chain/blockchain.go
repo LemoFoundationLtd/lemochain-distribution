@@ -8,6 +8,7 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNet "github.com/LemoFoundationLtd/lemochain-core/network"
+	"github.com/LemoFoundationLtd/lemochain-core/store"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
 	"sync"
 	"sync/atomic"
@@ -26,13 +27,27 @@ type BlockChain struct {
 	dbEngine       database.DBEngine
 }
 
-func NewBlockChain(chainID uint16, dm *deputynode.Manager, dbEngine database.DBEngine) (bc *BlockChain, err error) {
+// blockLoader BlockLoader implement for deputynode.Manager
+type blockLoader struct {
+	bc *BlockChain
+}
+
+func (b *blockLoader) GetBlockByHeight(height uint32) (*types.Block, error) {
+	block := b.bc.GetBlockByHeight(height)
+	if block == nil {
+		return nil, store.ErrNotExist
+	} else {
+		return block, nil
+	}
+}
+
+func NewBlockChain(chainID uint16, deputyCount int, dbEngine database.DBEngine) (bc *BlockChain, err error) {
 	bc = &BlockChain{
 		chainID:        chainID,
-		dm:             dm,
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
 		dbEngine:       dbEngine,
 	}
+	bc.dm = deputynode.NewManager(deputyCount, &blockLoader{bc})
 
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
@@ -43,18 +58,6 @@ func NewBlockChain(chainID uint16, dm *deputynode.Manager, dbEngine database.DBE
 	}
 
 	return bc, nil
-}
-
-// InitDeputyNodes init deputy nodes information
-func InitDeputyNodes(dm *deputynode.Manager, bc *BlockChain) {
-	for snapshotHeight := uint32(0); ; snapshotHeight += params.TermDuration {
-		block := bc.GetBlockByHeight(snapshotHeight)
-		if block == nil {
-			break
-		}
-
-		dm.SaveSnapshot(snapshotHeight, block.DeputyNodes)
-	}
 }
 
 // func (bc *BlockChain) AccountManager() *account.Manager {

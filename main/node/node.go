@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/account"
-	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	"github.com/LemoFoundationLtd/lemochain-core/common/flock"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNode "github.com/LemoFoundationLtd/lemochain-core/main/node"
@@ -50,12 +49,10 @@ func initDb(dataDir string, driver string, dns string) protocol.ChainDB {
 }
 
 func New(cfg *config.Config) (*Node, error) {
-	dm := deputynode.NewManager(int(cfg.DeputyCount))
-	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), dm, database.NewMySqlDB(cfg.DbDriver, cfg.DbUri))
+	bc, err := chain.NewBlockChain(uint16(cfg.ChainID), int(cfg.DeputyCount), database.NewMySqlDB(cfg.DbDriver, cfg.DbUri))
 	if err != nil {
 		return nil, err
 	}
-	chain.InitDeputyNodes(dm, bc)
 	pm := NewProtocolManager(uint16(cfg.ChainID), cfg.CoreNodeID(), cfg.CoreEndpoint(), bc)
 
 	n := &Node{
