@@ -81,7 +81,11 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 	defer dbEngine.Close()
 
 	accountDao := database.NewAccountDao(dbEngine)
-	return accountDao.Get(address)
+	accountData, err := accountDao.Get(address)
+	if err == database.ErrNotExist {
+		return &types.AccountData{Address: address}, nil
+	}
+	return accountData, err
 }
 
 // GetAllRewardValue get the value for each bonus
@@ -584,7 +588,6 @@ type txListResMarshaling struct {
 	Total hexutil.Uint32
 }
 
-//
 // // GetTxListByAddress pull the list of transactions
 func (t *PublicTxAPI) GetTxListByAddress(lemoAddress string, index int, size int) (*TxListRes, error) {
 	src, err := common.StringToAddress(lemoAddress)
