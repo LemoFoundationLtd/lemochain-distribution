@@ -83,7 +83,7 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 	accountDao := database.NewAccountDao(dbEngine)
 	accountData, err := accountDao.Get(address)
 	if err == database.ErrNotExist {
-		return &types.AccountData{Address: address}, nil
+		return &types.AccountData{Address: address, Balance: big.NewInt(0), Candidate: types.Candidate{Votes: big.NewInt(0)}}, nil
 	}
 	return accountData, err
 }
