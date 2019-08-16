@@ -1,20 +1,20 @@
 package database
 
 import (
-	"testing"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-func NewAsset(code common.Hash, addr common.Address) (*types.Asset) {
+func NewAsset(code common.Hash, addr common.Address) *types.Asset {
 	return &types.Asset{
 		AssetCode: code,
-		Issuer:addr,
+		Issuer:    addr,
 	}
 }
 
-func NewAsset10() ([]*types.Asset) {
+func NewAsset10() []*types.Asset {
 	result := make([]*types.Asset, 10)
 	result[0] = NewAsset(common.HexToHash("0x0bcde"), common.HexToAddress("0x02345"))
 	result[1] = NewAsset(common.HexToHash("0x1bcde"), common.HexToAddress("0x02345"))
@@ -37,17 +37,17 @@ func TestAssetDao_Set(t *testing.T) {
 	assetes := NewAsset10()
 
 	assetDao := NewAssetDao(db)
-	err := assetDao.Set(assetes[0])		// insert
+	err := assetDao.Set(assetes[0]) // insert
 	assert.NoError(t, err)
 
 	result, err := assetDao.Get(assetes[0].AssetCode)
 	assert.NoError(t, err)
 	assert.Equal(t, result.Issuer, assetes[0].Issuer)
 
-	err = assetDao.Set(assetes[0])		// update
+	err = assetDao.Set(assetes[0]) // update
 	assert.NoError(t, err)
 
-	err = assetDao.Set(assetes[0])		// update
+	err = assetDao.Set(assetes[0]) // update
 	assert.NoError(t, err)
 }
 
@@ -58,7 +58,7 @@ func TestAssetDao_GetPage(t *testing.T) {
 	assetDao := NewAssetDao(db)
 
 	assetes := NewAsset10()
-	for index := 0; index < len(assetes); index++{
+	for index := 0; index < len(assetes); index++ {
 		err := assetDao.Set(assetes[index])
 		assert.NoError(t, err)
 	}
@@ -116,7 +116,7 @@ func TestAssetDao_GetNotExist(t *testing.T) {
 	assetDao := NewAssetDao(db)
 
 	assetes := NewAsset10()
-	for index := 0; index < len(assetes); index++{
+	for index := 0; index < len(assetes); index++ {
 		err := assetDao.Set(assetes[index])
 		assert.NoError(t, err)
 	}
@@ -133,7 +133,7 @@ func TestAssetDao_GetNotExist(t *testing.T) {
 	assert.Equal(t, 0, len(result))
 }
 
-func TestAssetDao_GetArgInvalid(t *testing.T){
+func TestAssetDao_GetArgInvalid(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
 	defer db.Close()
 	defer db.Clear()
