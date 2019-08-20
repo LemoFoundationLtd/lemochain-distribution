@@ -172,9 +172,9 @@ func (engine *ReBuildEngine) filterSaveAssetTx(PHash common.Hash, tx *types.Tran
 		}
 		AssType := asset.Category
 		var assetId common.Hash
-		if AssType == types.Asset01 {
+		if AssType == types.TokenAsset {
 			assetId = assetCode
-		} else if AssType == types.Asset02 || AssType == types.Asset03 { // ERC721 or ERC721+20
+		} else if AssType == types.NonFungibleAsset || AssType == types.CommonAsset { // ERC721 or ERC721+20
 			assetId = tx.Hash()
 		} else {
 			log.Errorf("Assert's Category not exist ,Category = %d ", AssType)
@@ -361,7 +361,7 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 					return nil, errors.New("asset is nil,get asset by assetId ")
 				}
 
-				if asset.Category == types.Asset01 {
+				if asset.Category == types.TokenAsset {
 					assetIds[asset.AssetCode] = issueAsset
 				} else {
 					assetIds[tx.Hash()] = issueAsset
