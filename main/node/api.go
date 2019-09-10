@@ -400,7 +400,7 @@ func NewPublicTxAPI(node *Node) *PublicTxAPI {
 
 // Send send a transaction
 func (t *PublicTxAPI) SendTx(tx *types.Transaction) (common.Hash, error) {
-	err := tx.VerifyTx(t.node.chain.ChainID(), uint64(time.Now().Unix()))
+	err := tx.VerifyTxBeforeTxPool(t.node.chain.ChainID(), uint64(time.Now().Unix()))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -422,7 +422,7 @@ func (t *PublicTxAPI) SendReimbursedGasTx(senderPrivate, gasPayerPrivate string,
 	if err != nil {
 		return common.Hash{}, err
 	}
-	err = lastSignTx.VerifyTx(t.node.chain.ChainID(), uint64(time.Now().Unix()))
+	err = lastSignTx.VerifyTxBeforeTxPool(t.node.chain.ChainID(), uint64(time.Now().Unix()))
 	if err != nil {
 		return common.Hash{}, err
 	}
