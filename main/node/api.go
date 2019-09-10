@@ -445,7 +445,7 @@ func (t *PublicTxAPI) CreateAsset(prv string, category, decimals uint32, isReple
 		IsDivisible:     isDivisible,
 		AssetCode:       common.Hash{},
 		Decimal:         decimals,
-		TotalSupply:     big.NewInt(100000),
+		TotalSupply:     big.NewInt(1000000),
 		IsReplenishable: isReplenishable,
 		Issuer:          issuer,
 		Profile:         profile,
