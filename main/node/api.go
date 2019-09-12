@@ -565,6 +565,9 @@ func (t *PublicTxAPI) GetTxByHash(hash string) (*store.VTransactionDetail, error
 	txDao := database.NewTxDao(dbEngine)
 	tx, err := txDao.Get(txHash)
 	if err != nil {
+		if database.ErrIsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	} else {
 		return &store.VTransactionDetail{
