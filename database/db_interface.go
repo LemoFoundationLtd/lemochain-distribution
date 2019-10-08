@@ -19,11 +19,11 @@ type DBEngine interface {
 type MySqlDB struct {
 	engine *sql.DB
 	driver string
-	dns    string
+	dbHost string
 }
 
-func NewMySqlDB(driver string, dns string) *MySqlDB {
-	db, err := Open(driver, dns)
+func NewMySqlDB(driver string, dbHost string) *MySqlDB {
+	db, err := Open(driver, dbHost)
 	if err != nil {
 		panic("open mysql err: " + err.Error())
 	}
@@ -31,7 +31,7 @@ func NewMySqlDB(driver string, dns string) *MySqlDB {
 	return &MySqlDB{
 		engine: db,
 		driver: driver,
-		dns:    dns,
+		dbHost: dbHost,
 	}
 }
 

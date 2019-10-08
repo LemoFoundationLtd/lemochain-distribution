@@ -60,7 +60,7 @@ func (dm *DialManager) handleConn(fd net.Conn) error {
 	// is self
 	if bytes.Compare(p.RNodeID()[:], deputynode.GetSelfNodeID()) == 0 {
 		if err := fd.Close(); err != nil {
-			log.Errorf("close connections failed", err)
+			log.Errorf("close connections failed: %v", err)
 		} else {
 			log.Error("can't connect self")
 		}

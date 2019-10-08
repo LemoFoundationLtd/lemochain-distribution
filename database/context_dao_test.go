@@ -1,13 +1,13 @@
 package database
 
 import (
-	"testing"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestContextDao_ContextSet(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -21,7 +21,6 @@ func TestContextDao_ContextSet(t *testing.T) {
 	assert.Equal(t, 1, len(result))
 	assert.Equal(t, result[0].key, ContextKeyCurrentBlock)
 	assert.Equal(t, result[0].val, common.HexToHash("0xabcdef").Bytes())
-
 
 	contextItem, err := contextDao.ContextGet(ContextKeyCurrentBlock)
 	assert.NoError(t, err)

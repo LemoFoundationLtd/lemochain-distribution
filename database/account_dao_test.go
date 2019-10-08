@@ -1,30 +1,30 @@
 package database
 
 import (
-	"testing"
-	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestAccountDao_Get(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
 	accountDao := NewAccountDao(db)
 	addr := common.HexToAddress("0xabc1123")
-	account := &types.AccountData{Address:addr}
+	account := &types.AccountData{Address: addr}
 	err := accountDao.Set(addr, account)
 	assert.NoError(t, err)
 
-	result, err:= accountDao.Get(addr)
+	result, err := accountDao.Get(addr)
 	assert.NoError(t, err)
 	assert.Equal(t, addr, result.Address)
 }
 
 func TestAccountDao_GetNotExist(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -37,7 +37,7 @@ func TestAccountDao_GetNotExist(t *testing.T) {
 }
 
 func TestAccountDao_GetArgInvalid(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 

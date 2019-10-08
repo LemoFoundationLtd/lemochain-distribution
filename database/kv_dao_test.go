@@ -1,12 +1,12 @@
 package database
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestKvDao_Get(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -23,7 +23,7 @@ func TestKvDao_Get(t *testing.T) {
 }
 
 func TestKvDao_NotExist(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	kvDao := NewKvDao(db)
@@ -34,7 +34,7 @@ func TestKvDao_NotExist(t *testing.T) {
 }
 
 func TestKvDao_ArgInvalid(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	kvDao := NewKvDao(db)

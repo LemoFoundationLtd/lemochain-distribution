@@ -36,7 +36,7 @@ func NewTx10() []*Tx {
 }
 
 func TestTxDao_Get(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -59,7 +59,7 @@ func TestTxDao_Get(t *testing.T) {
 }
 
 func TestTxDao_GetPage(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	txDao := NewTxDao(db)
@@ -103,7 +103,7 @@ func TestTxDao_GetPage(t *testing.T) {
 }
 
 func TestTxDao_GetPateWithTotal(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	txDao := NewTxDao(db)
@@ -155,7 +155,7 @@ func TestTxDao_GetPateWithTotal(t *testing.T) {
 }
 
 func TestTxDao_NotExist(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	txDao := NewTxDao(db)
@@ -166,7 +166,7 @@ func TestTxDao_NotExist(t *testing.T) {
 }
 
 func TestTxDao_ArgInvalid(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	txDao := NewTxDao(db)
@@ -220,7 +220,7 @@ func TestTxDao_ArgInvalid(t *testing.T) {
 }
 
 func TestTxDao_GetByAddressAndAssetCodeOrAssetIdWithTotal(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	txDao := NewTxDao(db)

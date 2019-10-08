@@ -7,16 +7,16 @@ import (
 
 var (
 	DRIVER_MYSQL = "mysql"
-	DNS_MYSQL    = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
+	HOST_MYSQL   = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
 
-// 	DNS_MYSQL    = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
-// 	DNS_MYSQL = "root:123456@tcp(149.28.68.93:3306)/lemochain01?charset=utf8mb4"
+// 	HOST_MYSQL    = "root:123456@tcp(localhost:3306)/lemochain?charset=utf8mb4"
+// 	HOST_MYSQL = "root:123456@tcp(149.28.68.93:3306)/lemochain01?charset=utf8mb4"
 )
 
 // driver = "mysql"
-// dns = root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4
-func Open(driver string, dns string) (*sql.DB, error) {
-	db, err := sql.Open(driver, dns)
+// dbHost = root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4
+func Open(driver string, dbHost string) (*sql.DB, error) {
+	db, err := sql.Open(driver, dbHost)
 	if err != nil {
 		return nil, err
 	} else {

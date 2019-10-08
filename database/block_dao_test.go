@@ -8,7 +8,7 @@ import (
 )
 
 func TestBlockDao_GetBlock(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -30,7 +30,7 @@ func TestBlockDao_GetBlock(t *testing.T) {
 }
 
 func TestBlockDao_GetNotExist(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -46,7 +46,7 @@ func TestBlockDao_GetNotExist(t *testing.T) {
 }
 
 func TestBlockDao_GetArgInvalid(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 

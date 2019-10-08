@@ -1,18 +1,18 @@
 package database
 
 import (
-	"testing"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
-	"strconv"
-	"math/big"
 	"github.com/stretchr/testify/assert"
+	"math/big"
+	"strconv"
+	"testing"
 )
 
-func NewCandidates50() []*CandidateItem{
+func NewCandidates50() []*CandidateItem {
 	result := make([]*CandidateItem, 0)
-	for index := 0; index < 50; index++{
+	for index := 0; index < 50; index++ {
 		result = append(result, &CandidateItem{
-			User: common.HexToAddress(strconv.Itoa(100 + index)),
+			User:  common.HexToAddress(strconv.Itoa(100 + index)),
 			Votes: new(big.Int).SetInt64(int64(index)),
 		})
 	}
@@ -20,7 +20,7 @@ func NewCandidates50() []*CandidateItem{
 }
 
 func TestCandidateDao_Set(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	candidateDao := NewCandidateDao(db)
@@ -42,8 +42,7 @@ func TestCandidateDao_Set(t *testing.T) {
 	assert.Equal(t, 0, len(result))
 	assert.Equal(t, 0, total)
 
-
-	for index := 0; index < len(candidates); index++{
+	for index := 0; index < len(candidates); index++ {
 		candidateDao.Set(candidates[index])
 	}
 
@@ -71,7 +70,7 @@ func TestCandidateDao_Set(t *testing.T) {
 }
 
 func TestCandidateDao_ArgInvalid(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	candidateDao := NewCandidateDao(db)

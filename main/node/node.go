@@ -7,7 +7,6 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNode "github.com/LemoFoundationLtd/lemochain-core/main/node"
 	"github.com/LemoFoundationLtd/lemochain-core/network/rpc"
-	"github.com/LemoFoundationLtd/lemochain-core/store"
 	"github.com/LemoFoundationLtd/lemochain-core/store/protocol"
 	"github.com/LemoFoundationLtd/lemochain-distribution/chain"
 	"github.com/LemoFoundationLtd/lemochain-distribution/database"
@@ -41,11 +40,6 @@ type Node struct {
 	wsEndpoint string
 	wsListener net.Listener
 	wsHandler  *rpc.Server
-}
-
-func initDb(dataDir string, driver string, dns string) protocol.ChainDB {
-	dir := filepath.Join(dataDir, "chaindata")
-	return store.NewChainDataBase(dir, driver, dns)
 }
 
 func New(cfg *config.Config) (*Node, error) {

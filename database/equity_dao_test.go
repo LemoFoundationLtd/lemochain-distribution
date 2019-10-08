@@ -1,22 +1,22 @@
 package database
 
 import (
-	"testing"
-	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
-	"math/big"
+	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
-func NewAssetEquity(code common.Hash, id common.Hash, equity int64) (*types.AssetEquity){
+func NewAssetEquity(code common.Hash, id common.Hash, equity int64) *types.AssetEquity {
 	return &types.AssetEquity{
-		AssetCode:code,
-		AssetId:id,
-		Equity:new(big.Int).SetInt64(equity),
+		AssetCode: code,
+		AssetId:   id,
+		Equity:    new(big.Int).SetInt64(equity),
 	}
 }
 
-func NewAssetEquity20() ([]*types.AssetEquity) {
+func NewAssetEquity20() []*types.AssetEquity {
 	result := make([]*types.AssetEquity, 20)
 	result[0] = NewAssetEquity(common.HexToHash("0x0abcd"), common.HexToHash("0x01234"), 50)
 	result[1] = NewAssetEquity(common.HexToHash("0x1abcd"), common.HexToHash("0x11234"), 50)
@@ -42,7 +42,7 @@ func NewAssetEquity20() ([]*types.AssetEquity) {
 }
 
 func TestEquityDao_Get(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 
@@ -67,17 +67,17 @@ func TestEquityDao_Get(t *testing.T) {
 }
 
 func TestEquityDao_GetPage(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	equityDao := NewEquityDao(db)
 
 	equities := NewAssetEquity20()
-	for index := 0; index < 10; index++{
+	for index := 0; index < 10; index++ {
 		equityDao.Set(common.HexToAddress("0x01"), equities[index])
 	}
 
-	for index := 10; index < 20; index++{
+	for index := 10; index < 20; index++ {
 		equityDao.Set(common.HexToAddress("0x02"), equities[index])
 	}
 
@@ -91,17 +91,17 @@ func TestEquityDao_GetPage(t *testing.T) {
 }
 
 func TestEquityDao_GetPageWithTotal(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	equityDao := NewEquityDao(db)
 
 	equities := NewAssetEquity20()
-	for index := 0; index < 10; index++{
+	for index := 0; index < 10; index++ {
 		equityDao.Set(common.HexToAddress("0x01"), equities[index])
 	}
 
-	for index := 10; index < 20; index++{
+	for index := 10; index < 20; index++ {
 		equityDao.Set(common.HexToAddress("0x02"), equities[index])
 	}
 
@@ -117,7 +117,7 @@ func TestEquityDao_GetPageWithTotal(t *testing.T) {
 }
 
 func TestEquityDao_NotExist(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	equityDao := NewEquityDao(db)
@@ -128,7 +128,7 @@ func TestEquityDao_NotExist(t *testing.T) {
 }
 
 func TestEquityDao_ArgInvaild(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	equityDao := NewEquityDao(db)

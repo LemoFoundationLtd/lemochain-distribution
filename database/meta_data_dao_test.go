@@ -55,7 +55,7 @@ func NewMetaDataBatch20() []common.Hash {
 }
 
 func TestMetaDataDao_Get(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
@@ -91,7 +91,7 @@ func TestMetaDataDao_Get(t *testing.T) {
 }
 
 func TestMetaDataDao_GetPage(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
@@ -113,7 +113,7 @@ func TestMetaDataDao_GetPage(t *testing.T) {
 }
 
 func TestMetaDataDao_GetPageWithTotal(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
@@ -137,7 +137,7 @@ func TestMetaDataDao_GetPageWithTotal(t *testing.T) {
 }
 
 func TestMetaDataDao_GetPageByCode(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
@@ -159,7 +159,7 @@ func TestMetaDataDao_GetPageByCode(t *testing.T) {
 }
 
 func TestMetaDataDao_GetPageByCodeWithTotal(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
@@ -183,7 +183,7 @@ func TestMetaDataDao_GetPageByCodeWithTotal(t *testing.T) {
 }
 
 func TestMetaDataDao_NotExist(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
@@ -194,7 +194,7 @@ func TestMetaDataDao_NotExist(t *testing.T) {
 }
 
 func TestMetaDataDao_ArgInvalid(t *testing.T) {
-	db := NewMySqlDB(DRIVER_MYSQL, DNS_MYSQL)
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
 	defer db.Clear()
 	metaDataDao := NewMetaDataDao(db)
