@@ -3,7 +3,6 @@ package node
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -215,28 +214,58 @@ type candidateListResMarshaling struct {
 	Total hexutil.Uint32
 }
 
-// GetDeputyNodeList get deputy nodes who are in charge
-func (c *PublicChainAPI) GetDeputyNodeList() []string {
-	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
+//go:generate gencodec -type DeputyNodeInfo --field-override deputyNodeInfoMarshaling -out gen_deputyNode_info_json.go
+type DeputyNodeInfo struct {
+	MinerAddress  common.Address `json:"minerAddress"   gencodec:"required"` // candidate account address
+	IncomeAddress common.Address `json:"incomeAddress" gencodec:"required"`
+	NodeID        []byte         `json:"nodeID"         gencodec:"required"`
+	Rank          uint32         `json:"rank"           gencodec:"required"` // start from 0
+	Votes         *big.Int       `json:"votes"          gencodec:"required"`
+	Host          string         `json:"host"          gencodec:"required"`
+	Port          string         `json:"port"          gencodec:"required"`
+	DepositAmount string         `json:"depositAmount"  gencodec:"required"` // 质押金额
+	Introduction  string         `json:"introduction"  gencodec:"required"`  // 节点介绍
+}
 
+type deputyNodeInfoMarshaling struct {
+	NodeID hexutil.Bytes
+	Rank   hexutil.Uint32
+	Votes  *hexutil.Big10
+}
+
+// GetDeputyNodeList get deputy nodes who are in charge
+func (c *PublicChainAPI) GetDeputyNodeList() []*DeputyNodeInfo {
+	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
 	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	accountDao := database.NewAccountDao(dbEngine)
 
-	var result []string
+	var result []*DeputyNodeInfo
 	for _, n := range nodes {
-		// candidateAcc := c.node.accMan.GetCanonicalAccount(n.MinerAddress)
 		candidateAcc, err := accountDao.Get(n.MinerAddress)
 		if err != nil {
 			log.Errorf("Get minerAddress accountData error: %v", err)
 			continue
 		}
 		profile := candidateAcc.Candidate.Profile
-		host := profile[types.CandidateKeyHost]
-		port := profile[types.CandidateKeyPort]
-		nodeAddrString := fmt.Sprintf("%x@%s:%s", n.NodeID, host, port)
-		result = append(result, nodeAddrString)
+		incomeAddress, err := common.StringToAddress(profile[types.CandidateKeyIncomeAddress])
+		if err != nil {
+			log.Errorf("incomeAddress string to address type.incomeAddress: %s.error: %v", profile[types.CandidateKeyIncomeAddress], err)
+			continue
+		}
+		deputyNodeInfo := &DeputyNodeInfo{
+			MinerAddress:  n.MinerAddress,
+			IncomeAddress: incomeAddress,
+			NodeID:        n.NodeID,
+			Rank:          n.Rank,
+			Votes:         n.Votes,
+			Host:          profile[types.CandidateKeyHost],
+			Port:          profile[types.CandidateKeyPort],
+			DepositAmount: profile[types.CandidateKeyDepositAmount],
+			Introduction:  profile[types.CandidateKeyIntroduction],
+		}
+		result = append(result, deputyNodeInfo)
 	}
 	return result
 }
