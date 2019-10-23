@@ -89,51 +89,6 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 	return accountData, err
 }
 
-// GetAllRewardValue get the value for each bonus
-func (a *PublicAccountAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
-	address := coreParams.TermRewardContract
-	key := address.Hash()
-	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
-	defer dbEngine.Close()
-	kvDao := database.NewKvDao(dbEngine)
-	value, err := kvDao.Get(key.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	rewardMap := make(coreParams.RewardsMap)
-	err = json.Unmarshal(value, &rewardMap)
-	return rewardMap, err
-}
-
-//go:generate gencodec -type TermRewardInfo --field-override termRewardInfoMarshaling -out gen_termReward_info_json.go
-type TermRewardInfo struct {
-	Term         uint32   `json:"term" gencodec:"required"`
-	Value        *big.Int `json:"value" gencodec:"required"`
-	RewardHeight uint32   `json:"rewardHeight" gencodec:"required"`
-}
-type termRewardInfoMarshaling struct {
-	Term         hexutil.Uint32
-	Value        *hexutil.Big10
-	RewardHeight hexutil.Uint32
-}
-
-func (a *PublicAccountAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
-	term := deputynode.GetTermIndexByHeight(height)
-	termValueMaplist, err := a.GetAllRewardValue()
-	if err != nil {
-		return nil, err
-	}
-	if reward, ok := termValueMaplist[term]; ok {
-		return &TermRewardInfo{
-			Term:         reward.Term,
-			Value:        reward.Value,
-			RewardHeight: (term+1)*coreParams.TermDuration + coreParams.InterimDuration + 1,
-		}, nil
-	} else {
-		return nil, nil
-	}
-}
-
 // GetAssetEquity returns asset equity
 func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId common.Hash) (*types.AssetEquity, error) {
 	address, err := common.StringToAddress(LemoAddress)
@@ -262,6 +217,51 @@ type deputyNodeInfoMarshaling struct {
 	Votes  *hexutil.Big10
 }
 
+// GetAllRewardValue get the value for each bonus
+func (a *PublicChainAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
+	address := coreParams.TermRewardContract
+	key := address.Hash()
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
+	defer dbEngine.Close()
+	kvDao := database.NewKvDao(dbEngine)
+	value, err := kvDao.Get(key.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	rewardMap := make(coreParams.RewardsMap)
+	err = json.Unmarshal(value, &rewardMap)
+	return rewardMap, err
+}
+
+//go:generate gencodec -type TermRewardInfo --field-override termRewardInfoMarshaling -out gen_termReward_info_json.go
+type TermRewardInfo struct {
+	Term         uint32   `json:"term" gencodec:"required"`
+	Value        *big.Int `json:"value" gencodec:"required"`
+	RewardHeight uint32   `json:"rewardHeight" gencodec:"required"`
+}
+type termRewardInfoMarshaling struct {
+	Term         hexutil.Uint32
+	Value        *hexutil.Big10
+	RewardHeight hexutil.Uint32
+}
+
+func (a *PublicChainAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
+	term := deputynode.GetTermIndexByHeight(height)
+	termValueMaplist, err := a.GetAllRewardValue()
+	if err != nil {
+		return nil, err
+	}
+	if reward, ok := termValueMaplist[term]; ok {
+		return &TermRewardInfo{
+			Term:         reward.Term,
+			Value:        reward.Value,
+			RewardHeight: (term+1)*coreParams.TermDuration + coreParams.InterimDuration + 1,
+		}, nil
+	} else {
+		return nil, nil
+	}
+}
+
 // GetDeputyNodeList get deputy nodes who are in charge
 func (c *PublicChainAPI) GetDeputyNodeList() []*DeputyNodeInfo {
 	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
@@ -303,7 +303,6 @@ func (c *PublicChainAPI) GetDeputyNodeList() []*DeputyNodeInfo {
 	return result
 }
 
-//
 // // GetCandidateNodeList get all candidate node list information and return total candidate node
 func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
 	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
