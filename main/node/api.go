@@ -116,7 +116,7 @@ type termRewardInfoMarshaling struct {
 	RewardHeight hexutil.Uint32
 }
 
-func (a *PublicAccountAPI) GetTermRewardByHeight(height uint32) (*TermRewardInfo, error) {
+func (a *PublicAccountAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
 	term := deputynode.GetTermIndexByHeight(height)
 	termValueMaplist, err := a.GetAllRewardValue()
 	if err != nil {
