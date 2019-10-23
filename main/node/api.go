@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
@@ -252,6 +253,7 @@ type DeputyNodeInfo struct {
 	Port          string         `json:"port"          gencodec:"required"`
 	DepositAmount string         `json:"depositAmount"  gencodec:"required"` // 质押金额
 	Introduction  string         `json:"introduction"  gencodec:"required"`  // 节点介绍
+	P2pUri        string         `json:"p2pUri"  gencodec:"required"`        // p2p 连接用的定位符
 }
 
 type deputyNodeInfoMarshaling struct {
@@ -281,16 +283,20 @@ func (c *PublicChainAPI) GetDeputyNodeList() []*DeputyNodeInfo {
 			log.Errorf("incomeAddress string to address type.incomeAddress: %s.error: %v", profile[types.CandidateKeyIncomeAddress], err)
 			continue
 		}
+		host := profile[types.CandidateKeyHost]
+		port := profile[types.CandidateKeyPort]
+		nodeAddrString := fmt.Sprintf("%x@%s:%s", n.NodeID, host, port)
 		deputyNodeInfo := &DeputyNodeInfo{
 			MinerAddress:  n.MinerAddress,
 			IncomeAddress: incomeAddress,
 			NodeID:        n.NodeID,
 			Rank:          n.Rank,
 			Votes:         n.Votes,
-			Host:          profile[types.CandidateKeyHost],
-			Port:          profile[types.CandidateKeyPort],
+			Host:          host,
+			Port:          port,
 			DepositAmount: profile[types.CandidateKeyDepositAmount],
 			Introduction:  profile[types.CandidateKeyIntroduction],
+			P2pUri:        nodeAddrString,
 		}
 		result = append(result, deputyNodeInfo)
 	}

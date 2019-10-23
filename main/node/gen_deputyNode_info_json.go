@@ -25,6 +25,7 @@ func (d DeputyNodeInfo) MarshalJSON() ([]byte, error) {
 		Port          string         `json:"port"          gencodec:"required"`
 		DepositAmount string         `json:"depositAmount"  gencodec:"required"`
 		Introduction  string         `json:"introduction"  gencodec:"required"`
+		P2pUri        string         `json:"p2pUri"  gencodec:"required"`
 	}
 	var enc DeputyNodeInfo
 	enc.MinerAddress = d.MinerAddress
@@ -36,6 +37,7 @@ func (d DeputyNodeInfo) MarshalJSON() ([]byte, error) {
 	enc.Port = d.Port
 	enc.DepositAmount = d.DepositAmount
 	enc.Introduction = d.Introduction
+	enc.P2pUri = d.P2pUri
 	return json.Marshal(&enc)
 }
 
@@ -51,6 +53,7 @@ func (d *DeputyNodeInfo) UnmarshalJSON(input []byte) error {
 		Port          *string         `json:"port"          gencodec:"required"`
 		DepositAmount *string         `json:"depositAmount"  gencodec:"required"`
 		Introduction  *string         `json:"introduction"  gencodec:"required"`
+		P2pUri        *string         `json:"p2pUri"  gencodec:"required"`
 	}
 	var dec DeputyNodeInfo
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -92,5 +95,9 @@ func (d *DeputyNodeInfo) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'introduction' for DeputyNodeInfo")
 	}
 	d.Introduction = *dec.Introduction
+	if dec.P2pUri == nil {
+		return errors.New("missing required field 'p2pUri' for DeputyNodeInfo")
+	}
+	d.P2pUri = *dec.P2pUri
 	return nil
 }
