@@ -3,6 +3,7 @@ package node
 import (
 	"encoding/json"
 	"errors"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -88,22 +89,48 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 }
 
 // GetAllRewardValue get the value for each bonus
-func (a *PublicAccountAPI) GetAllRewardValue() ([]*coreParams.Reward, error) {
-	// address := coreParams.TermRewardPrecompiledContractAddress
-	// acc, err := a.GetAccount(address.String())
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// key := address.Hash()
-	// value, err := acc.GetStorageState(key)
-	// rewardMap := make(coreParams.RewardsMap)
-	// json.Unmarshal(value, &rewardMap)
-	// var result = make([]*coreParams.Reward, 0)
-	// for _, v := range rewardMap {
-	// 	result = append(result, v)
-	// }
-	// return result, nil
-	return nil, nil
+func (a *PublicAccountAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
+	address := coreParams.TermRewardContract
+	key := address.Hash()
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
+	defer dbEngine.Close()
+	kvDao := database.NewKvDao(dbEngine)
+	value, err := kvDao.Get(key.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	rewardMap := make(coreParams.RewardsMap)
+	err = json.Unmarshal(value, &rewardMap)
+	return rewardMap, err
+}
+
+//go:generate gencodec -type TermRewardInfo --field-override termRewardInfoMarshaling -out gen_termReward_info_json.go
+type TermRewardInfo struct {
+	Term         uint32   `json:"term" gencodec:"required"`
+	Value        *big.Int `json:"value" gencodec:"required"`
+	RewardHeight uint32   `json:"rewardHeight" gencodec:"required"`
+}
+type termRewardInfoMarshaling struct {
+	Term         hexutil.Uint32
+	Value        *hexutil.Big10
+	RewardHeight hexutil.Uint32
+}
+
+func (a *PublicAccountAPI) GetTermRewardByHeight(height uint32) (*TermRewardInfo, error) {
+	term := deputynode.GetTermIndexByHeight(height)
+	termValueMaplist, err := a.GetAllRewardValue()
+	if err != nil {
+		return nil, err
+	}
+	if reward, ok := termValueMaplist[term]; ok {
+		return &TermRewardInfo{
+			Term:         reward.Term,
+			Value:        reward.Value,
+			RewardHeight: (term+1)*coreParams.TermDuration + coreParams.InterimDuration + 1,
+		}, nil
+	} else {
+		return nil, nil
+	}
 }
 
 // GetAssetEquity returns asset equity
