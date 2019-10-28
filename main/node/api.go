@@ -220,11 +220,11 @@ type deputyNodeInfoMarshaling struct {
 // GetAllRewardValue get the value for each bonus
 func (a *PublicChainAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
 	address := coreParams.TermRewardContract
-	key := address.Hash()
+	hash := address.Hash()
 	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 	kvDao := database.NewKvDao(dbEngine)
-	value, err := kvDao.Get(key.Bytes())
+	value, err := kvDao.Get(database.GetStorageKey(hash))
 	if err != nil {
 		return nil, err
 	}
