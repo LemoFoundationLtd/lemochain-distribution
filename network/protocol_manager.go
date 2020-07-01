@@ -379,38 +379,38 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		return err
 	}
 	defer func() {
-		if msg.Code == coreNetwork.BlocksMsg {
-			log.Debugf("receive blocks msg: %d", msg.Code)
+		if msg.Code == p2p.BlocksMsg {
+			log.Debugf("receive blocks msg: %s", msg.Code)
 		}
 	}()
 
 	switch msg.Code {
-	case coreNetwork.LstStatusMsg:
+	case p2p.LstStatusMsg:
 		return pm.handleLstStatusMsg(msg, p)
-	case coreNetwork.GetLstStatusMsg:
+	case p2p.GetLstStatusMsg:
 		return pm.handleGetLstStatusMsg(msg, p)
-	case coreNetwork.BlockHashMsg:
+	case p2p.BlockHashMsg:
 		return pm.handleBlockHashMsg(msg, p)
-	case coreNetwork.TxsMsg:
+	case p2p.TxsMsg:
 		return pm.handleTxsMsg(msg)
-	case coreNetwork.BlocksMsg:
+	case p2p.BlocksMsg:
 		return pm.handleBlocksMsg(msg, p)
-	case coreNetwork.GetBlocksMsg:
+	case p2p.GetBlocksMsg:
 		return pm.handleGetBlocksMsg(msg, p)
-	case coreNetwork.GetConfirmsMsg:
+	case p2p.GetConfirmsMsg:
 		return pm.handleGetConfirmsMsg(msg, p)
-	case coreNetwork.ConfirmsMsg:
+	case p2p.ConfirmsMsg:
 		return pm.handleConfirmsMsg(msg)
-	case coreNetwork.ConfirmMsg:
+	case p2p.ConfirmMsg:
 		return pm.handleConfirmMsg(msg)
-	case coreNetwork.DiscoverReqMsg:
+	case p2p.DiscoverReqMsg:
 		return pm.handleDiscoverReqMsg(msg, p)
-	case coreNetwork.DiscoverResMsg:
+	case p2p.DiscoverResMsg:
 		return pm.handleDiscoverResMsg(msg)
-	case coreNetwork.GetBlocksWithChangeLogMsg:
+	case p2p.GetBlocksWithChangeLogMsg:
 		return pm.handleGetBlocksWithChangeLogMsg(msg, p)
 	default:
-		log.Debugf("invalid code: %d, from: %s", msg.Code, common.ToHex(p.NodeID()[:8]))
+		log.Debugf("invalid code: %s, from: %s", msg.Code, common.ToHex(p.NodeID()[:8]))
 		return coreNetwork.ErrInvalidCode
 	}
 }

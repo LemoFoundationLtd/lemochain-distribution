@@ -118,7 +118,7 @@ func (p *peer) RequestBlocks(from, to uint32) int {
 	}
 	// log.Debugf("start request blocks: from: %d, to: %d", from, to)
 	p.conn.SetWriteDeadline(DurShort)
-	if err = p.conn.WriteMsg(coreNetwork.GetBlocksWithChangeLogMsg, buf); err != nil {
+	if err = p.conn.WriteMsg(p2p.GetBlocksWithChangeLogMsg, buf); err != nil {
 		log.Warnf("RequestBlocks: write message failed: %v", err)
 		return -3
 	}
@@ -129,7 +129,7 @@ func (p *peer) RequestBlocks(from, to uint32) int {
 // Handshake protocol handshake
 func (p *peer) Handshake(content []byte) (*ProtocolHandshake, error) {
 	// write to remote
-	if err := p.conn.WriteMsg(coreNetwork.ProHandshakeMsg, content); err != nil {
+	if err := p.conn.WriteMsg(p2p.ProHandshakeMsg, content); err != nil {
 		return nil, err
 	}
 	// read from remote
@@ -176,7 +176,7 @@ func (p *peer) SendLstStatus(status *LatestStatus) int {
 		return -1
 	}
 	p.conn.SetWriteDeadline(DurShort)
-	if err = p.conn.WriteMsg(coreNetwork.LstStatusMsg, buf); err != nil {
+	if err = p.conn.WriteMsg(p2p.LstStatusMsg, buf); err != nil {
 		log.Warnf("SendLstStatus to peer: %s failed: %v", p.NodeID().String()[:16], err)
 		p.conn.Close()
 		return -2
@@ -191,7 +191,7 @@ func (p *peer) SendTxs(txs types.Transactions) int {
 		log.Warnf("SendTxs: rlp failed: %v", err)
 		return -1
 	}
-	if err := p.conn.WriteMsg(coreNetwork.TxsMsg, buf); err != nil {
+	if err := p.conn.WriteMsg(p2p.TxsMsg, buf); err != nil {
 		log.Warnf("SendTxs to peer: %s failed. disconnect. %v", p.NodeID().String()[:16], err)
 		p.conn.Close()
 		return -2
@@ -208,7 +208,7 @@ func (p *peer) SendReqLatestStatus() int {
 		return -1
 	}
 	p.conn.SetWriteDeadline(DurShort)
-	if err := p.conn.WriteMsg(coreNetwork.GetLstStatusMsg, buf); err != nil {
+	if err := p.conn.WriteMsg(p2p.GetLstStatusMsg, buf); err != nil {
 		log.Warnf("SendReqLatestStatus to peer: %s failed. disconnect. %v", p.NodeID().String()[:16], err)
 		p.conn.Close()
 		return -2
