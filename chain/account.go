@@ -165,6 +165,11 @@ func (account *ReBuildAccount) GetCandidateState(key string) string {
 }
 
 func (account *ReBuildAccount) SetCandidateState(key string, val string) {
+	// 判断是否为注销候选节点
+	if key == types.CandidateKeyIsCandidate && val == types.NotCandidateNode {
+		// 设置ReBuildAccount中的IsCancelCandidate为true
+		account.IsCancelCandidate = true
+	}
 	account.Candidate.Profile[key] = val
 }
 

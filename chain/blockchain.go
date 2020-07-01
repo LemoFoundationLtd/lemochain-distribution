@@ -47,15 +47,16 @@ func NewBlockChain(chainID uint16, deputyCount int, dbEngine database.DBEngine) 
 		chainForksHead: make(map[common.Hash]*types.Block, 16),
 		dbEngine:       dbEngine,
 	}
-	bc.dm = deputynode.NewManager(deputyCount, &blockLoader{bc})
+
+	if err := bc.loadGenesis(); err != nil {
+		return nil, err
+	}
 
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
 
-	if err := bc.loadGenesis(); err != nil {
-		return nil, err
-	}
+	bc.dm = deputynode.NewManager(deputyCount, &blockLoader{bc})
 
 	return bc, nil
 }

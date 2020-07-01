@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	coreParams "github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
@@ -86,25 +87,6 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 		return &types.AccountData{Address: address, Balance: big.NewInt(0), Candidate: types.Candidate{Votes: big.NewInt(0)}}, nil
 	}
 	return accountData, err
-}
-
-// GetAllRewardValue get the value for each bonus
-func (a *PublicAccountAPI) GetAllRewardValue() ([]*coreParams.Reward, error) {
-	// address := coreParams.TermRewardPrecompiledContractAddress
-	// acc, err := a.GetAccount(address.String())
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// key := address.Hash()
-	// value, err := acc.GetStorageState(key)
-	// rewardMap := make(coreParams.RewardsMap)
-	// json.Unmarshal(value, &rewardMap)
-	// var result = make([]*coreParams.Reward, 0)
-	// for _, v := range rewardMap {
-	// 	result = append(result, v)
-	// }
-	// return result, nil
-	return nil, nil
 }
 
 // GetAssetEquity returns asset equity
@@ -215,33 +197,112 @@ type candidateListResMarshaling struct {
 	Total hexutil.Uint32
 }
 
-// GetDeputyNodeList get deputy nodes who are in charge
-func (c *PublicChainAPI) GetDeputyNodeList() []string {
-	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
+//go:generate gencodec -type DeputyNodeInfo --field-override deputyNodeInfoMarshaling -out gen_deputyNode_info_json.go
+type DeputyNodeInfo struct {
+	MinerAddress  common.Address `json:"minerAddress"   gencodec:"required"` // candidate account address
+	IncomeAddress common.Address `json:"incomeAddress" gencodec:"required"`
+	NodeID        []byte         `json:"nodeID"         gencodec:"required"`
+	Rank          uint32         `json:"rank"           gencodec:"required"` // start from 0
+	Votes         *big.Int       `json:"votes"          gencodec:"required"`
+	Host          string         `json:"host"          gencodec:"required"`
+	Port          string         `json:"port"          gencodec:"required"`
+	DepositAmount string         `json:"depositAmount"  gencodec:"required"` // 质押金额
+	Introduction  string         `json:"introduction"  gencodec:"required"`  // 节点介绍
+	P2pUri        string         `json:"p2pUri"  gencodec:"required"`        // p2p 连接用的定位符
+}
 
+type deputyNodeInfoMarshaling struct {
+	NodeID hexutil.Bytes
+	Rank   hexutil.Uint32
+	Votes  *hexutil.Big10
+}
+
+// GetAllRewardValue get the value for each bonus
+func (a *PublicChainAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
+	address := coreParams.TermRewardContract
+	hash := address.Hash()
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
+	defer dbEngine.Close()
+	kvDao := database.NewKvDao(dbEngine)
+	value, err := kvDao.Get(database.GetStorageKey(hash))
+	if err != nil {
+		return nil, err
+	}
+	rewardMap := make(coreParams.RewardsMap)
+	err = json.Unmarshal(value, &rewardMap)
+	return rewardMap, err
+}
+
+//go:generate gencodec -type TermRewardInfo --field-override termRewardInfoMarshaling -out gen_termReward_info_json.go
+type TermRewardInfo struct {
+	Term         uint32   `json:"term" gencodec:"required"`
+	Value        *big.Int `json:"value" gencodec:"required"`
+	RewardHeight uint32   `json:"rewardHeight" gencodec:"required"`
+}
+type termRewardInfoMarshaling struct {
+	Term         hexutil.Uint32
+	Value        *hexutil.Big10
+	RewardHeight hexutil.Uint32
+}
+
+func (a *PublicChainAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
+	term := deputynode.GetTermIndexByHeight(height)
+	termValueMaplist, err := a.GetAllRewardValue()
+	if err != nil {
+		return nil, err
+	}
+	if reward, ok := termValueMaplist[term]; ok {
+		return &TermRewardInfo{
+			Term:         reward.Term,
+			Value:        reward.Value,
+			RewardHeight: (term+1)*coreParams.TermDuration + coreParams.InterimDuration + 1,
+		}, nil
+	} else {
+		return nil, nil
+	}
+}
+
+// GetDeputyNodeList get deputy nodes who are in charge
+func (c *PublicChainAPI) GetDeputyNodeList() []*DeputyNodeInfo {
+	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
 	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 
 	accountDao := database.NewAccountDao(dbEngine)
 
-	var result []string
+	var result []*DeputyNodeInfo
 	for _, n := range nodes {
-		// candidateAcc := c.node.accMan.GetCanonicalAccount(n.MinerAddress)
 		candidateAcc, err := accountDao.Get(n.MinerAddress)
 		if err != nil {
 			log.Errorf("Get minerAddress accountData error: %v", err)
 			continue
 		}
 		profile := candidateAcc.Candidate.Profile
+		incomeAddress, err := common.StringToAddress(profile[types.CandidateKeyIncomeAddress])
+		if err != nil {
+			log.Errorf("incomeAddress string to address type.incomeAddress: %s.error: %v", profile[types.CandidateKeyIncomeAddress], err)
+			continue
+		}
 		host := profile[types.CandidateKeyHost]
 		port := profile[types.CandidateKeyPort]
 		nodeAddrString := fmt.Sprintf("%x@%s:%s", n.NodeID, host, port)
-		result = append(result, nodeAddrString)
+		deputyNodeInfo := &DeputyNodeInfo{
+			MinerAddress:  n.MinerAddress,
+			IncomeAddress: incomeAddress,
+			NodeID:        n.NodeID,
+			Rank:          n.Rank,
+			Votes:         n.Votes,
+			Host:          host,
+			Port:          port,
+			DepositAmount: profile[types.CandidateKeyDepositAmount],
+			Introduction:  profile[types.CandidateKeyIntroduction],
+			P2pUri:        nodeAddrString,
+		}
+		result = append(result, deputyNodeInfo)
 	}
 	return result
 }
 
-//
 // // GetCandidateNodeList get all candidate node list information and return total candidate node
 func (c *PublicChainAPI) GetCandidateList(index, size int) (*CandidateListRes, error) {
 	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)

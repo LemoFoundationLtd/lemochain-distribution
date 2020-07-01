@@ -60,13 +60,13 @@ func (engine *ReBuildEngine) ReBuild() error {
 			}
 		}
 	}
-	//
-	err := engine.resolve()
+
+	err := engine.resolve() // 保存account缓存中的字段到数据库，比如asset,candidate等
 	if err != nil {
 		return err
 	}
 
-	return engine.Save()
+	return engine.Save() // 保存block,tx,account,currentBlock
 }
 
 func (engine *ReBuildEngine) Save() error {
@@ -283,7 +283,7 @@ func (engine *ReBuildEngine) saveStorageBatch(storage map[common.Hash][]byte) er
 
 func (engine *ReBuildEngine) saveStorage(hash common.Hash, val []byte) error {
 	kvDao := database.NewKvDao(engine.Store)
-	return kvDao.Set(hash.Bytes(), val)
+	return kvDao.Set(database.GetStorageKey(hash), val)
 }
 
 func (engine *ReBuildEngine) saveAssetCodeBatch(assets map[common.Hash]*types.Asset) error {
