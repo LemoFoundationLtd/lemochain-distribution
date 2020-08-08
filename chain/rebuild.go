@@ -207,7 +207,7 @@ func (engine *ReBuildEngine) filterSaveAssetTx(PHash common.Hash, tx *types.Tran
 
 	case params.TransferAssetTx:
 		// 1. 获取资产交易中的assetId
-		tradingAsset, err := types.GetTradingAsset(tx.Data())
+		tradingAsset, err := types.GetTransferAsset(tx.Data())
 		if err != nil {
 			log.Errorf("Unmarshal transfer asset data err: %s", err)
 			return err, true

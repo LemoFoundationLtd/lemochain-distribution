@@ -591,13 +591,13 @@ func (t *PublicTxAPI) ModifyAsset(prv string, assetCode common.Hash) (common.Has
 }
 
 // 交易资产
-func (t *PublicTxAPI) TradingAsset(prv string, to common.Address, assetCode, assetId common.Hash, amount *big.Int, input []byte) (common.Hash, error) {
-	trading := &types.TradingAsset{
+func (t *PublicTxAPI) TransferAsset(prv string, to common.Address, assetCode, assetId common.Hash, amount *big.Int, input []byte) (common.Hash, error) {
+	transfer := &types.TransferAsset{
 		AssetId: assetId,
-		Value:   amount,
+		Amount:  amount,
 		Input:   input,
 	}
-	data, err := json.Marshal(trading)
+	data, err := json.Marshal(transfer)
 	if err != nil {
 		return common.Hash{}, err
 	}

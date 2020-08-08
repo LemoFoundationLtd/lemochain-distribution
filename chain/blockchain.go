@@ -211,7 +211,7 @@ func (bc *BlockChain) InsertBlock(block *types.Block) error {
 }
 
 // not used. just for implement interface
-func (bc *BlockChain) InsertConfirm(info *coreNet.BlockConfirmData) {
+func (bc *BlockChain) InsertConfirms(height uint32, blockHash common.Hash, sigList []types.SignData) {
 }
 func (bc *BlockChain) InsertStableConfirms(pack coreNet.BlockConfirms) {
 }
