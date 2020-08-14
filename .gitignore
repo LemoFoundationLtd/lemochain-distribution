@@ -33,3 +33,5 @@ profile.cov
 **/yarn-error.log
 log.json
 testdata
+/log/
+/distribution-config.json

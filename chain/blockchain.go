@@ -35,7 +35,7 @@ type blockLoader struct {
 func (b *blockLoader) GetBlockByHeight(height uint32) (*types.Block, error) {
 	block := b.bc.GetBlockByHeight(height)
 	if block == nil {
-		return nil, store.ErrNotExist
+		return nil, store.ErrBlockNotExist
 	} else {
 		return block, nil
 	}
