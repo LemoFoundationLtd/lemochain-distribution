@@ -218,17 +218,21 @@ type deputyNodeInfoMarshaling struct {
 }
 
 // GetAllRewardValue get the value for each bonus
-func (a *PublicChainAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
+func (c *PublicChainAPI) GetAllRewardValue() (coreParams.RewardsMap, error) {
 	address := coreParams.TermRewardContract
-	hash := address.Hash()
-	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
+	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 	kvDao := database.NewKvDao(dbEngine)
-	value, err := kvDao.Get(database.GetStorageKey(hash))
+
+	value, err := kvDao.Get(database.GetStorageKey(address.Hash()))
 	if err != nil {
 		return nil, err
 	}
 	rewardMap := make(coreParams.RewardsMap)
+	// return empty map if the reward not exist
+	if len(value) == 0 {
+		return rewardMap, nil
+	}
 	err = json.Unmarshal(value, &rewardMap)
 	return rewardMap, err
 }
@@ -245,20 +249,24 @@ type termRewardInfoMarshaling struct {
 	RewardHeight hexutil.Uint32
 }
 
-func (a *PublicChainAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
+func (c *PublicChainAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
 	term := deputynode.GetTermIndexByHeight(height)
-	termValueMaplist, err := a.GetAllRewardValue()
+	termValueMap, err := c.GetAllRewardValue()
 	if err != nil {
 		return nil, err
 	}
-	if reward, ok := termValueMaplist[term]; ok {
+	if reward, ok := termValueMap[term]; ok {
 		return &TermRewardInfo{
 			Term:         reward.Term,
 			Value:        reward.Value,
 			RewardHeight: (term+1)*coreParams.TermDuration + coreParams.InterimDuration + 1,
 		}, nil
 	} else {
-		return nil, nil
+		return &TermRewardInfo{
+			Term:         term,
+			Value:        new(big.Int),
+			RewardHeight: (term+1)*coreParams.TermDuration + coreParams.InterimDuration + 1,
+		}, nil
 	}
 }
 
