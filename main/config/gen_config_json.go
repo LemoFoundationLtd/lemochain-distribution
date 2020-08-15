@@ -16,24 +16,24 @@ func (c Config) MarshalJSON() ([]byte, error) {
 	type Config struct {
 		ChainID     hexutil.Uint32 `json:"chainID"        gencodec:"required"`
 		DeputyCount hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
-		DataDir     string         `json:"serverDataDir"  gencodec:"required"`
 		DbUri       string         `json:"dbUri"          gencodec:"required"`
 		DbDriver    string         `json:"dbDriver"       gencodec:"required"`
 		LogLevel    hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
 		CoreNode    string         `json:"coreNode"       gencodec:"required"`
 		Http        RpcHttp        `json:"http"`
 		WebSocket   RpcWS          `json:"webSocket"`
+		DataDir     string
 	}
 	var enc Config
 	enc.ChainID = hexutil.Uint32(c.ChainID)
 	enc.DeputyCount = hexutil.Uint32(c.DeputyCount)
-	enc.DataDir = c.DataDir
 	enc.DbUri = c.DbUri
 	enc.DbDriver = c.DbDriver
 	enc.LogLevel = hexutil.Uint32(c.LogLevel)
 	enc.CoreNode = c.CoreNode
 	enc.Http = c.Http
 	enc.WebSocket = c.WebSocket
+	enc.DataDir = c.DataDir
 	return json.Marshal(&enc)
 }
 
@@ -42,13 +42,13 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 	type Config struct {
 		ChainID     *hexutil.Uint32 `json:"chainID"        gencodec:"required"`
 		DeputyCount *hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
-		DataDir     *string         `json:"serverDataDir"  gencodec:"required"`
 		DbUri       *string         `json:"dbUri"          gencodec:"required"`
 		DbDriver    *string         `json:"dbDriver"       gencodec:"required"`
 		LogLevel    *hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
 		CoreNode    *string         `json:"coreNode"       gencodec:"required"`
 		Http        *RpcHttp        `json:"http"`
 		WebSocket   *RpcWS          `json:"webSocket"`
+		DataDir     *string
 	}
 	var dec Config
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -62,10 +62,6 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'deputyCount' for Config")
 	}
 	c.DeputyCount = uint32(*dec.DeputyCount)
-	if dec.DataDir == nil {
-		return errors.New("missing required field 'serverDataDir' for Config")
-	}
-	c.DataDir = *dec.DataDir
 	if dec.DbUri == nil {
 		return errors.New("missing required field 'dbUri' for Config")
 	}
@@ -87,6 +83,9 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 	}
 	if dec.WebSocket != nil {
 		c.WebSocket = *dec.WebSocket
+	}
+	if dec.DataDir != nil {
+		c.DataDir = *dec.DataDir
 	}
 	return nil
 }
