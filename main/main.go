@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
 	"github.com/LemoFoundationLtd/lemochain-core/common/log"
 	coreNode "github.com/LemoFoundationLtd/lemochain-core/main/node"
 	"github.com/LemoFoundationLtd/lemochain-distribution/main/config"
@@ -18,6 +19,10 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("config file read error: %v", err))
 	}
+	cfg.Check()
+	log.Info("Load \"distribution-config.json\" success", "ChainID", cfg.ChainID, "DeputyCount", cfg.DeputyCount)
+
+	deputynode.SetSelfNodeKey(cfg.NodeKey())
 	coreNode.InitLogConfig(int(cfg.LogLevel) - 1)
 	if err := startServer(cfg); err != nil {
 		panic(fmt.Sprintf("start server failed: %v", err))

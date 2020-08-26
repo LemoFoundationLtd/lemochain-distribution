@@ -5,7 +5,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/deputynode"
+	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/LemoFoundationLtd/lemochain-core/common/crypto"
 	"github.com/LemoFoundationLtd/lemochain-core/common/hexutil"
@@ -19,17 +21,23 @@ import (
 )
 
 const (
-	ConfigGuideUrl    = ""
-	datadirPrivateKey = "nodekey"
-	configName        = "distribution-config.json"
-)
-
-const (
+	ConfigGuideUrl          = ""
+	NodeKeyFileName         = "nodekey"
+	JsonFileName            = "distribution-config.json"
 	DefaultHttpAddr         = "127.0.0.1"
 	DefaultHttpPort         = 8001
 	DefaultHttpVirtualHosts = "localhost"
 	DefaultWSAddr           = "127.0.0.1"
 	DefaultWSPort           = 8002
+)
+
+var (
+	ErrConfigFormat          = fmt.Errorf(`file "%s" format error. %s`, JsonFileName, ConfigGuideUrl)
+	ErrChainIDInConfig       = fmt.Errorf(`file "%s" error: chainID must be in [1, 65535]`, JsonFileName)
+	ErrLogLevelInConfig      = fmt.Errorf(`file "%s" error: logLevel must be in [1, 5]`, JsonFileName)
+	ErrHttpPortInConfig      = fmt.Errorf(`file "%s" error: http port must be less than 65535`, JsonFileName)
+	ErrWebSocketPortInConfig = fmt.Errorf(`file "%s" error: websocket port must be less than 65535`, JsonFileName)
+	ErrCoreNodeInConfig      = fmt.Errorf(`file "%s" error: coreNode must be like: 5e3600755f9b512a65603b38e30885c98cbac70259c3235c9b3f42ee563b480edea351ba0ff5748a638fe0aeff5d845bf37a3b437831871b48fd32f33cd9a3c0@127.0.0.1:60001`, JsonFileName)
 )
 
 //go:generate gencodec -type RpcHttp -field-override RpcMarshaling -out gen_http_json.go
@@ -56,14 +64,16 @@ type RpcWS struct {
 }
 
 type Config struct {
-	ChainID     uint32  `json:"chainID"        gencodec:"required"`
-	DeputyCount uint32  `json:"deputyCount"    gencodec:"required"`
-	DbUri       string  `json:"dbUri"          gencodec:"required"` // sample: root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4
-	DbDriver    string  `json:"dbDriver"       gencodec:"required"`
-	LogLevel    uint32  `json:"logLevel"       gencodec:"required"`
-	CoreNode    string  `json:"coreNode"       gencodec:"required"`
-	Http        RpcHttp `json:"http"`
-	WebSocket   RpcWS   `json:"webSocket"`
+	ChainID         uint32  `json:"chainID"        gencodec:"required"`
+	DeputyCount     uint32  `json:"deputyCount"    gencodec:"required"`
+	TermDuration    uint64  `json:"termDuration"`
+	InterimDuration uint64  `json:"interimDuration"`
+	DbUri           string  `json:"dbUri"          gencodec:"required"` // sample: root:123123@tcp(localhost:3306)/lemochain?charset=utf8mb4
+	DbDriver        string  `json:"dbDriver"       gencodec:"required"`
+	LogLevel        uint32  `json:"logLevel"`
+	CoreNode        string  `json:"coreNode"       gencodec:"required"`
+	Http            RpcHttp `json:"http"`
+	WebSocket       RpcWS   `json:"webSocket"`
 
 	DataDir      string
 	nodeKey      *ecdsa.PrivateKey
@@ -72,18 +82,20 @@ type Config struct {
 }
 
 type ConfigMarshaling struct {
-	ChainID     hexutil.Uint32
-	DeputyCount hexutil.Uint32
-	LogLevel    hexutil.Uint32
+	ChainID         hexutil.Uint32
+	DeputyCount     hexutil.Uint32
+	TermDuration    hexutil.Uint64
+	InterimDuration hexutil.Uint64
+	LogLevel        hexutil.Uint32
 }
 
 func ReadConfigFile() (*Config, error) {
-	// Try to read from system temp directory
+	// Try to read from command line
 	dataDir := os.Args[1]
-	filePath := filepath.Join(dataDir, configName)
+	filePath := filepath.Join(dataDir, JsonFileName)
 	if _, err := os.Stat(filePath); err != nil {
 		// Try to read from relative path
-		filePath = configName
+		filePath = JsonFileName
 	}
 	log.Infof("Load config file: %s", filePath)
 	file, err := os.Open(filePath)
@@ -93,56 +105,63 @@ func ReadConfigFile() (*Config, error) {
 
 	var config Config
 	if err = json.NewDecoder(file).Decode(&config); err != nil {
-		return nil, ErrConfig
+		return nil, ErrConfigFormat
 	}
 	config.DataDir = dataDir
-	deputynode.SetSelfNodeKey(config.NodeKey())
-	if err := check(&config); err != nil {
-		return nil, err
-	}
 	return &config, nil
 }
 
-func check(cfg *Config) error {
-	if cfg.ChainID == 0 {
-		return ErrChainId
+func (c *Config) Check() {
+	if c.ChainID > 65535 || c.ChainID < 1 {
+		panic(ErrChainIDInConfig)
 	}
-	if cfg.LogLevel > 5 {
-		return ErrLogLevel
+	if c.DeputyCount == 0 {
+		c.DeputyCount = 17
 	}
-	if !cfg.Http.Disable {
-		if cfg.Http.ListenAddress == "" {
-			cfg.Http.ListenAddress = DefaultHttpAddr
+	if c.TermDuration > 0 {
+		params.TermDuration = uint32(c.TermDuration)
+	}
+	if c.InterimDuration > 0 {
+		params.InterimDuration = uint32(c.InterimDuration)
+	}
+	if c.LogLevel == 0 {
+		c.LogLevel = 4
+	}
+	if c.LogLevel > 5 {
+		panic(ErrLogLevelInConfig)
+	}
+	if !c.Http.Disable {
+		if c.Http.ListenAddress == "" {
+			c.Http.ListenAddress = DefaultHttpAddr
 		}
 
-		if cfg.Http.Port > 65535 {
-			return ErrPort
-		} else if cfg.Http.Port == 0 {
-			cfg.Http.Port = DefaultHttpPort
+		if c.Http.Port > 65535 {
+			panic(ErrHttpPortInConfig)
+		} else if c.Http.Port == 0 {
+			c.Http.Port = DefaultHttpPort
 		}
 
-		if cfg.Http.VirtualHosts == "" {
-			cfg.Http.VirtualHosts = DefaultHttpVirtualHosts
+		if c.Http.VirtualHosts == "" {
+			c.Http.VirtualHosts = DefaultHttpVirtualHosts
 		}
 	}
-	if !cfg.WebSocket.Disable {
-		if cfg.WebSocket.ListenAddress == "" {
-			cfg.WebSocket.ListenAddress = DefaultWSAddr
+	if !c.WebSocket.Disable {
+		if c.WebSocket.ListenAddress == "" {
+			c.WebSocket.ListenAddress = DefaultWSAddr
 		}
 
-		if cfg.WebSocket.Port > 65535 {
-			return ErrPort
-		} else if cfg.WebSocket.Port == 0 {
-			cfg.WebSocket.Port = DefaultWSPort
+		if c.WebSocket.Port > 65535 {
+			panic(ErrWebSocketPortInConfig)
+		} else if c.WebSocket.Port == 0 {
+			c.WebSocket.Port = DefaultWSPort
 		}
 	}
-	nodeID, endpoint := checkNodeString(cfg.CoreNode)
+	nodeID, endpoint := parseNodeString(c.CoreNode)
 	if nodeID == nil {
-		return ErrCoreNode
+		panic(ErrCoreNodeInConfig)
 	}
-	cfg.coreNodeID = nodeID
-	cfg.coreEndpoint = endpoint
-	return nil
+	c.coreNodeID = nodeID
+	c.coreEndpoint = endpoint
 }
 
 func (c *Config) NodeKey() *ecdsa.PrivateKey {
@@ -150,7 +169,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 		return c.nodeKey
 	}
 
-	keyFile := filepath.Join(c.DataDir, datadirPrivateKey)
+	keyFile := filepath.Join(c.DataDir, NodeKeyFileName)
 	if key, err := crypto.LoadECDSA(keyFile); err == nil {
 		c.nodeKey = key
 		return key
@@ -165,7 +184,7 @@ func (c *Config) NodeKey() *ecdsa.PrivateKey {
 		log.Errorf("Failed to persist node key: %v", err)
 		return key
 	}
-	keyFile = filepath.Join(instanceDir, datadirPrivateKey)
+	keyFile = filepath.Join(instanceDir, NodeKeyFileName)
 	if err := crypto.SaveECDSA(keyFile, key); err != nil {
 		log.Errorf("Failed to persist node key: %v", err)
 	}
@@ -181,8 +200,8 @@ func (c *Config) CoreEndpoint() string {
 	return c.coreEndpoint
 }
 
-// checkNodeString verify invalid
-func checkNodeString(node string) (*p2p.NodeID, string) {
+// parseNodeString verify node address
+func parseNodeString(node string) (*p2p.NodeID, string) {
 	tmp := strings.Split(node, "@")
 	if len(tmp) != 2 {
 		return nil, ""

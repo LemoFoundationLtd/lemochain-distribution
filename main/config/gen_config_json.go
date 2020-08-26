@@ -14,19 +14,23 @@ var _ = (*ConfigMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (c Config) MarshalJSON() ([]byte, error) {
 	type Config struct {
-		ChainID     hexutil.Uint32 `json:"chainID"        gencodec:"required"`
-		DeputyCount hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
-		DbUri       string         `json:"dbUri"          gencodec:"required"`
-		DbDriver    string         `json:"dbDriver"       gencodec:"required"`
-		LogLevel    hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
-		CoreNode    string         `json:"coreNode"       gencodec:"required"`
-		Http        RpcHttp        `json:"http"`
-		WebSocket   RpcWS          `json:"webSocket"`
-		DataDir     string
+		ChainID         hexutil.Uint32 `json:"chainID"        gencodec:"required"`
+		DeputyCount     hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
+		TermDuration    hexutil.Uint64 `json:"termDuration"`
+		InterimDuration hexutil.Uint64 `json:"interimDuration"`
+		DbUri           string         `json:"dbUri"          gencodec:"required"`
+		DbDriver        string         `json:"dbDriver"       gencodec:"required"`
+		LogLevel        hexutil.Uint32 `json:"logLevel"`
+		CoreNode        string         `json:"coreNode"       gencodec:"required"`
+		Http            RpcHttp        `json:"http"`
+		WebSocket       RpcWS          `json:"webSocket"`
+		DataDir         string
 	}
 	var enc Config
 	enc.ChainID = hexutil.Uint32(c.ChainID)
 	enc.DeputyCount = hexutil.Uint32(c.DeputyCount)
+	enc.TermDuration = hexutil.Uint64(c.TermDuration)
+	enc.InterimDuration = hexutil.Uint64(c.InterimDuration)
 	enc.DbUri = c.DbUri
 	enc.DbDriver = c.DbDriver
 	enc.LogLevel = hexutil.Uint32(c.LogLevel)
@@ -40,15 +44,17 @@ func (c Config) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (c *Config) UnmarshalJSON(input []byte) error {
 	type Config struct {
-		ChainID     *hexutil.Uint32 `json:"chainID"        gencodec:"required"`
-		DeputyCount *hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
-		DbUri       *string         `json:"dbUri"          gencodec:"required"`
-		DbDriver    *string         `json:"dbDriver"       gencodec:"required"`
-		LogLevel    *hexutil.Uint32 `json:"logLevel"       gencodec:"required"`
-		CoreNode    *string         `json:"coreNode"       gencodec:"required"`
-		Http        *RpcHttp        `json:"http"`
-		WebSocket   *RpcWS          `json:"webSocket"`
-		DataDir     *string
+		ChainID         *hexutil.Uint32 `json:"chainID"        gencodec:"required"`
+		DeputyCount     *hexutil.Uint32 `json:"deputyCount"    gencodec:"required"`
+		TermDuration    *hexutil.Uint64 `json:"termDuration"`
+		InterimDuration *hexutil.Uint64 `json:"interimDuration"`
+		DbUri           *string         `json:"dbUri"          gencodec:"required"`
+		DbDriver        *string         `json:"dbDriver"       gencodec:"required"`
+		LogLevel        *hexutil.Uint32 `json:"logLevel"`
+		CoreNode        *string         `json:"coreNode"       gencodec:"required"`
+		Http            *RpcHttp        `json:"http"`
+		WebSocket       *RpcWS          `json:"webSocket"`
+		DataDir         *string
 	}
 	var dec Config
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -62,6 +68,12 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'deputyCount' for Config")
 	}
 	c.DeputyCount = uint32(*dec.DeputyCount)
+	if dec.TermDuration != nil {
+		c.TermDuration = uint64(*dec.TermDuration)
+	}
+	if dec.InterimDuration != nil {
+		c.InterimDuration = uint64(*dec.InterimDuration)
+	}
 	if dec.DbUri == nil {
 		return errors.New("missing required field 'dbUri' for Config")
 	}
@@ -70,10 +82,9 @@ func (c *Config) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'dbDriver' for Config")
 	}
 	c.DbDriver = *dec.DbDriver
-	if dec.LogLevel == nil {
-		return errors.New("missing required field 'logLevel' for Config")
+	if dec.LogLevel != nil {
+		c.LogLevel = uint32(*dec.LogLevel)
 	}
-	c.LogLevel = uint32(*dec.LogLevel)
 	if dec.CoreNode == nil {
 		return errors.New("missing required field 'coreNode' for Config")
 	}
