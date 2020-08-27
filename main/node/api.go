@@ -250,7 +250,7 @@ type termRewardInfoMarshaling struct {
 }
 
 func (c *PublicChainAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
-	term := deputynode.GetTermIndexByHeight(height)
+	term := deputynode.GetSignerTermIndexByHeight(height)
 	termValueMap, err := c.GetAllRewardValue()
 	if err != nil {
 		return nil, err
@@ -271,8 +271,8 @@ func (c *PublicChainAPI) GetTermReward(height uint32) (*TermRewardInfo, error) {
 }
 
 // GetDeputyNodeList get deputy nodes who are in charge
-func (c *PublicChainAPI) GetDeputyNodeList() []*DeputyNodeInfo {
-	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height())
+func (c *PublicChainAPI) GetDeputyNodeList(onlyBlockSigner bool) []*DeputyNodeInfo {
+	nodes := c.node.chain.DeputyManager().GetDeputiesByHeight(c.node.chain.StableBlock().Height(), onlyBlockSigner)
 	dbEngine := database.NewMySqlDB(c.node.config.DbDriver, c.node.config.DbUri)
 	defer dbEngine.Close()
 

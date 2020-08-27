@@ -12,6 +12,8 @@ github.com/LemoFoundationLtd/lemochain-core v1.3.1-0.20200815034044-1daa70041079
 github.com/LemoFoundationLtd/lemochain-core v1.3.1-0.20200815034044-1daa70041079/go.mod h1:uDzGUi5QZv94NOIANf/viMHU8FqRQ4PEB5AaJaDnFUU=
 github.com/LemoFoundationLtd/lemochain-core v1.3.1-0.20200826165827-bbbacda845d9 h1:Ui3bekYNfhsSNxLiG3tpRRLo62hkcMy8+arngfIBxNQ=
 github.com/LemoFoundationLtd/lemochain-core v1.3.1-0.20200826165827-bbbacda845d9/go.mod h1:uDzGUi5QZv94NOIANf/viMHU8FqRQ4PEB5AaJaDnFUU=
+github.com/LemoFoundationLtd/lemochain-core v1.3.1-0.20200827164219-213f897adbf9 h1:DZ/EYy6vtQ7mcfsCkiO/Eia2kHL/tqHGANsZK01C12Y=
+github.com/LemoFoundationLtd/lemochain-core v1.3.1-0.20200827164219-213f897adbf9/go.mod h1:uDzGUi5QZv94NOIANf/viMHU8FqRQ4PEB5AaJaDnFUU=
 github.com/LemoFoundationLtd/lemochain-distribution v0.9.0 h1:tcvpiIShL4o3RXyT3X+DxlXkbL78LjK7IYIAxfjFoWA=
 github.com/LemoFoundationLtd/lemochain-distribution v0.9.0/go.mod h1:DYyu0y7vm2CFAXyE7II0O3nc0zk5rKqfqpmjBwl48wQ=
 github.com/Shopify/sarama v1.26.1/go.mod h1:NbSGBSSndYaIhRcBtY9V0U7AyH+x71bG668AuWys/yU=
