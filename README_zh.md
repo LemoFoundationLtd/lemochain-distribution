@@ -21,17 +21,15 @@
 	"logLevel": 5,
 	"coreNode":"5e3600755f9b512a65603b38e30885c98cbac70259c3235c9b3f42ee563b480edea351ba0ff5748a638fe0aeff5d845bf37a3b437831871b48fd32f33cd9a3c0@120.78.132.151:7003",
 	"http":{
-		"disable": true,
+		"disable": false,
 		"port": 5001,
 		"corsDomain": "*",
-		"virtualHosts": "www.lemochain.com",
-		"listenAddress": "0.0.0.0"
+		"virtualHosts": "www.lemochain.com"
 	},
 	"webSocket":{
 		"disable": true,
 		"port": 5005,
-		"corsDomain": "*",
-		"listenAddress": "0.0.0.0"
+		"corsDomain": "*"
 	}
 }
 ```
@@ -48,11 +46,9 @@
 - `http.port` http服务器端口
 - `http.corsDomain` http跨域允许列表,配置为"*"表示允许所有域名访问。
 - `http.virtualHosts` http跨域限制预检请求允许列表，配置为"*"表示允许所有域名访问。
-- `http.listenAddress` http监听地址
 - `webSocket.disable` 是否禁止websocket服务，默认开启
 - `webSocket.port` websocket服务器端口
 - `webSocket.corsDomain` websocket允许跨域域名列表
-- `webSocket.listenAddress` websocket监听地址
 
 #### 启动流程
 - 启动流程请转到[wiki](https://github.com/LemoFoundationLtd/lemochain-distribution/wiki).

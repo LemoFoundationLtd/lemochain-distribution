@@ -14,29 +14,26 @@ var _ = (*RpcMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (r RpcHttp) MarshalJSON() ([]byte, error) {
 	type RpcHttp struct {
-		Disable       bool           `json:"disable"`
-		Port          hexutil.Uint32 `json:"port"  gencodec:"required"`
-		CorsDomain    string         `json:"corsDomain"`
-		VirtualHosts  string         `json:"virtualHosts"`
-		ListenAddress string         `json:"listenAddress"`
+		Disable      bool           `json:"disable"`
+		Port         hexutil.Uint32 `json:"port"  gencodec:"required"`
+		CorsDomain   string         `json:"corsDomain"`
+		VirtualHosts string         `json:"virtualHosts"`
 	}
 	var enc RpcHttp
 	enc.Disable = r.Disable
 	enc.Port = hexutil.Uint32(r.Port)
 	enc.CorsDomain = r.CorsDomain
 	enc.VirtualHosts = r.VirtualHosts
-	enc.ListenAddress = r.ListenAddress
 	return json.Marshal(&enc)
 }
 
 // UnmarshalJSON unmarshals from JSON.
 func (r *RpcHttp) UnmarshalJSON(input []byte) error {
 	type RpcHttp struct {
-		Disable       *bool           `json:"disable"`
-		Port          *hexutil.Uint32 `json:"port"  gencodec:"required"`
-		CorsDomain    *string         `json:"corsDomain"`
-		VirtualHosts  *string         `json:"virtualHosts"`
-		ListenAddress *string         `json:"listenAddress"`
+		Disable      *bool           `json:"disable"`
+		Port         *hexutil.Uint32 `json:"port"  gencodec:"required"`
+		CorsDomain   *string         `json:"corsDomain"`
+		VirtualHosts *string         `json:"virtualHosts"`
 	}
 	var dec RpcHttp
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -54,9 +51,6 @@ func (r *RpcHttp) UnmarshalJSON(input []byte) error {
 	}
 	if dec.VirtualHosts != nil {
 		r.VirtualHosts = *dec.VirtualHosts
-	}
-	if dec.ListenAddress != nil {
-		r.ListenAddress = *dec.ListenAddress
 	}
 	return nil
 }

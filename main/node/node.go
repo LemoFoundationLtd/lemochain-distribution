@@ -106,12 +106,16 @@ func (n *Node) openDataDir() error {
 
 func (n *Node) startRPC() error {
 	apis := n.apis()
-	if err := n.startHttp(apis); err != nil {
-		return err
+	if !n.config.Http.Disable {
+		if err := n.startHttp(apis); err != nil {
+			return err
+		}
 	}
-	if err := n.startWS(apis); err != nil {
-		n.stopHttp()
-		return err
+	if !n.config.Http.Disable {
+		if err := n.startWS(apis); err != nil {
+			n.stopHttp()
+			return err
+		}
 	}
 	n.rpcAPIs = apis
 	return nil
@@ -132,7 +136,7 @@ func (n *Node) startHttp(apis []rpc.API) error {
 		listener net.Listener
 		err      error
 	)
-	endpoint := fmt.Sprintf("%s:%d", n.config.Http.ListenAddress, n.config.Http.Port)
+	endpoint := fmt.Sprintf("0.0.0.0:%d", n.config.Http.Port)
 	if listener, err = net.Listen("tcp", endpoint); err != nil {
 		return err
 	}
@@ -149,7 +153,7 @@ func (n *Node) startHttp(apis []rpc.API) error {
 }
 
 func (n *Node) startWS(apis []rpc.API) error {
-	// todo
+	// TODO
 	return nil
 }
 

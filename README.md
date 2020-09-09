@@ -23,14 +23,12 @@
 		"disable": true,
 		"port": 5001,
 		"corsDomain": "*",
-		"virtualHosts": "www.lemochain.com",
-		"listenAddress": "0.0.0.0"
+		"virtualHosts": "www.lemochain.com"
 	},
 	"webSocket":{
 		"disable": true,
 		"port": 5005,
-		"corsDomain": "*",
-		"listenAddress": "0.0.0.0"
+		"corsDomain": "*"
 	}
 }
 ```
@@ -47,11 +45,9 @@ instructions:
 - `http.port` http port
 - `http.corsDomain` cross-domain allow list, all domain access is allowed if it is '*'.
 - `http.virtualHosts` precheck request permission list, all domain access is allowed if it is '*'.
-- `http.listenAddress` http listen address.
 - `webSocket.disable` whether to turn on webSocket, default on.
 - `webSocket.port` websocket port.
 - `webSocket.corsDomain` the same as http.
-- `webSocket.listenAddress` websocket listen address.
 
 #### start
 - Please click on the [wiki](https://github.com/LemoFoundationLtd/lemochain-distribution/wiki).

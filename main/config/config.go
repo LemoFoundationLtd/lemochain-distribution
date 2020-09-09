@@ -24,10 +24,8 @@ const (
 	ConfigGuideUrl          = ""
 	NodeKeyFileName         = "nodekey"
 	JsonFileName            = "distribution-config.json"
-	DefaultHttpAddr         = "127.0.0.1"
 	DefaultHttpPort         = 8001
 	DefaultHttpVirtualHosts = "localhost"
-	DefaultWSAddr           = "127.0.0.1"
 	DefaultWSPort           = 8002
 )
 
@@ -45,11 +43,10 @@ var (
 //go:generate gencodec -type Config -field-override ConfigMarshaling -out gen_config_json.go
 
 type RpcHttp struct {
-	Disable       bool   `json:"disable"`
-	Port          uint32 `json:"port"  gencodec:"required"`
-	CorsDomain    string `json:"corsDomain"`
-	VirtualHosts  string `json:"virtualHosts"`
-	ListenAddress string `json:"listenAddress"`
+	Disable      bool   `json:"disable"`
+	Port         uint32 `json:"port"  gencodec:"required"`
+	CorsDomain   string `json:"corsDomain"`
+	VirtualHosts string `json:"virtualHosts"`
 }
 
 type RpcMarshaling struct {
@@ -57,10 +54,9 @@ type RpcMarshaling struct {
 }
 
 type RpcWS struct {
-	Disable       bool   `json:"disable"`
-	Port          uint32 `json:"port"`
-	CorsDomain    string `json:"corsDomain"`
-	ListenAddress string `json:"listenAddress"`
+	Disable    bool   `json:"disable"`
+	Port       uint32 `json:"port"  gencodec:"required"`
+	CorsDomain string `json:"corsDomain"`
 }
 
 type Config struct {
@@ -131,10 +127,6 @@ func (c *Config) Check() {
 		panic(ErrLogLevelInConfig)
 	}
 	if !c.Http.Disable {
-		if c.Http.ListenAddress == "" {
-			c.Http.ListenAddress = DefaultHttpAddr
-		}
-
 		if c.Http.Port > 65535 {
 			panic(ErrHttpPortInConfig)
 		} else if c.Http.Port == 0 {
@@ -146,10 +138,6 @@ func (c *Config) Check() {
 		}
 	}
 	if !c.WebSocket.Disable {
-		if c.WebSocket.ListenAddress == "" {
-			c.WebSocket.ListenAddress = DefaultWSAddr
-		}
-
 		if c.WebSocket.Port > 65535 {
 			panic(ErrWebSocketPortInConfig)
 		} else if c.WebSocket.Port == 0 {
