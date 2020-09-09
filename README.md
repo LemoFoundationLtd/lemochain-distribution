@@ -13,11 +13,10 @@
 ```
 {
 	"chainID": 100,
-	"deputyCount": 17,
-	"serverDataDir": "./lemo-distribution",
 	"dbUri": "root:123456@tcp(127.0.0.1:3306)/lemo02?charset=utf8mb4",
 	"dbDriver": "mysql",
 	"logLevel": 5,
+	"deputyCount": 17,
 	"coreNode":"5e3600755f9b512a65603b38e30885c98cbac70259c3235c9b3f42ee563b480edea351ba0ff5748a638fe0aeff5d845bf37a3b437831871b48fd32f33cd9a3c0@120.78.132.151:7003",
 	"http":{
 		"disable": true,
@@ -33,21 +32,20 @@
 }
 ```
 instructions:
-- `chainID` must be the same as lemochain-core.
-- `deputyCount` must be the same as lemochain-core.
-- `serverDataDir` store randomly generated nodekey.
-- `dbUri` database uri.
-- `dbDriver` database type.
-- `logLevel` log output level.
-- `coreNode` will connect the lemochain-core.
-- `http and webSocket` rpc config.
-- `http.disable` whether to turn on HTTP, default on.
-- `http.port` http port
-- `http.corsDomain` cross-domain allow list, all domain access is allowed if it is '*'.
-- `http.virtualHosts` precheck request permission list, all domain access is allowed if it is '*'.
-- `webSocket.disable` whether to turn on webSocket, default on.
-- `webSocket.port` websocket port.
-- `webSocket.corsDomain` the same as http.
+- `chainID` The ID of LemoChain.
+- `dbUri` Database uri.
+- `dbDriver` Database type.
+- `logLevel` Log output level.
+- `deputyCount` The max number of consensus nodes.
+- `coreNode` Address of the lemochain-core to connect. It's looks like `nodeId@IP:Port`.
+- `http and webSocket` RPC config.
+- `http.disable` Whether to turn off HTTP, default on.
+- `http.port` Http port
+- `http.corsDomain` Cross-domain from whitelist, all domain accesses are allowed if it is '*'.
+- `http.virtualHosts` Cross-domain to whitelist, all domain accesses are allowed if it is '*'.
+- `webSocket.disable` Whether to turn off webSocket, default on.
+- `webSocket.port` Websocket port.
+- `webSocket.corsDomain` The same as http.
 
 #### start
 - Please click on the [wiki](https://github.com/LemoFoundationLtd/lemochain-distribution/wiki).
