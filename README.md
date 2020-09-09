@@ -7,8 +7,15 @@
 [English](https://github.com/LemoFoundationLtd/lemochain-distribution/blob/master/README.md)
 
 
+#### Run
+There is a parameter when run lemo-distribution. It is used to set the data directory
+```shell script
+lemo-distribution ./lemoserver-data
+```
+
+
 #### configuration file
-- File name：`distribution-config.json`,and must be put at the same level with the program executable directory;
+- File name：`distribution-config.json`, must be put at the data directory;
 - example
 ```
 {

@@ -7,9 +7,14 @@
 [English](https://github.com/LemoFoundationLtd/lemochain-distribution/blob/master/README.md)
 
 
+#### 运行
+运行时可以带一个参数，指定数据目录的位置
+```shell script
+lemo-distribution ./lemoserver-data
+```
 
 #### 配置文件
-- 文件名：distribution-config.json，且与程序可执行文件放在同级目录下；
+- 文件名：distribution-config.json，放在数据目录下
 - 文件范例
 ```
 {
