@@ -9,41 +9,41 @@ import (
 	"time"
 )
 
-//go:generate gencodec -type MetaData -out gen_metadata_json.go
-type MetaData struct {
-	Id      common.Hash    `json:"id" gencodec:"required"`
-	Code    common.Hash    `json:"code" gencodec:"required"`
-	Owner   common.Address `json:"owner" gencodec:"required"`
-	Profile string         `json:"profile" gencodec:"required"`
+//go:generate gencodec -type AssetToken -out gen_asset_token_json.go
+type AssetToken struct {
+	Id       common.Hash    `json:"assetId" gencodec:"required"`
+	Code     common.Hash    `json:"assetCode" gencodec:"required"`
+	Owner    common.Address `json:"owner" gencodec:"required"`
+	MetaData string         `json:"metaData" gencodec:"required"`
 }
 
-type MetaDataDao struct {
+type AssetTokenDao struct {
 	engine *sql.DB
 }
 
-func NewMetaDataDao(db DBEngine) *MetaDataDao {
-	return &MetaDataDao{engine: db.GetDB()}
+func NewAssetTokenDao(db DBEngine) *AssetTokenDao {
+	return &AssetTokenDao{engine: db.GetDB()}
 }
 
-func (dao *MetaDataDao) Set(metaData *MetaData) error {
-	if metaData == nil {
+func (dao *AssetTokenDao) Set(assetToken *AssetToken) error {
+	if assetToken == nil {
 		log.Errorf("set meta data.meta data is nil.")
 		return ErrArgInvalid
 	}
 
-	result, version, err := dao.query(metaData.Id)
+	result, version, err := dao.query(assetToken.Id)
 	if err != nil {
 		return err
 	}
 
 	if result == nil {
-		return dao.insert(metaData)
+		return dao.insert(assetToken)
 	} else {
-		return dao.update(metaData, version)
+		return dao.update(assetToken, version)
 	}
 }
 
-func (dao *MetaDataDao) Get(id common.Hash) (*MetaData, error) {
+func (dao *AssetTokenDao) Get(id common.Hash) (*AssetToken, error) {
 	if id == (common.Hash{}) {
 		log.Errorf("get meta data.id is common.hash{}")
 		return nil, ErrArgInvalid
@@ -62,7 +62,7 @@ func (dao *MetaDataDao) Get(id common.Hash) (*MetaData, error) {
 	}
 }
 
-func (dao *MetaDataDao) decodeProfile(val []byte) (string, error) {
+func (dao *AssetTokenDao) decodeProfile(val []byte) (string, error) {
 	var profile string
 	err := rlp.DecodeBytes(val, &profile)
 	if err != nil {
@@ -72,8 +72,8 @@ func (dao *MetaDataDao) decodeProfile(val []byte) (string, error) {
 	}
 }
 
-func (dao *MetaDataDao) buildMetaDataBatch(rows *sql.Rows) ([]*MetaData, error) {
-	result := make([]*MetaData, 0)
+func (dao *AssetTokenDao) buildAssetTokenBatch(rows *sql.Rows) ([]*AssetToken, error) {
+	result := make([]*AssetToken, 0)
 	for rows.Next() {
 		var id string
 		var code string
@@ -89,19 +89,19 @@ func (dao *MetaDataDao) buildMetaDataBatch(rows *sql.Rows) ([]*MetaData, error) 
 		if err != nil {
 			return nil, err
 		} else {
-			metaData := &MetaData{
-				Code:    common.HexToHash(code),
-				Id:      common.HexToHash(id),
-				Owner:   common.HexToAddress(addr),
-				Profile: profile,
+			assetToken := &AssetToken{
+				Code:     common.HexToHash(code),
+				Id:       common.HexToHash(id),
+				Owner:    common.HexToAddress(addr),
+				MetaData: profile,
 			}
-			result = append(result, metaData)
+			result = append(result, assetToken)
 		}
 	}
 	return result, nil
 }
 
-func (dao *MetaDataDao) GetPage(addr common.Address, start, limit int) ([]*MetaData, error) {
+func (dao *AssetTokenDao) GetPage(addr common.Address, start, limit int) ([]*AssetToken, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
 		log.Errorf("get meta by page.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
@@ -118,10 +118,10 @@ func (dao *MetaDataDao) GetPage(addr common.Address, start, limit int) ([]*MetaD
 		return nil, err
 	}
 
-	return dao.buildMetaDataBatch(rows)
+	return dao.buildAssetTokenBatch(rows)
 }
 
-func (dao *MetaDataDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*MetaData, int, error) {
+func (dao *AssetTokenDao) GetPageWithTotal(addr common.Address, start, limit int) ([]*AssetToken, int, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
 		log.Errorf("get meta by page with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
@@ -143,7 +143,7 @@ func (dao *MetaDataDao) GetPageWithTotal(addr common.Address, start, limit int) 
 	}
 }
 
-func (dao *MetaDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*MetaData, error) {
+func (dao *AssetTokenDao) GetPageByCode(code common.Hash, start, limit int) ([]*AssetToken, error) {
 	if code == (common.Hash{}) || (start < 0) || (limit <= 0) {
 		log.Errorf("get meta by code.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
@@ -160,10 +160,10 @@ func (dao *MetaDataDao) GetPageByCode(code common.Hash, start, limit int) ([]*Me
 		return nil, err
 	}
 
-	return dao.buildMetaDataBatch(rows)
+	return dao.buildAssetTokenBatch(rows)
 }
 
-func (dao *MetaDataDao) GetPageByCodeWithTotal(code common.Hash, start, limit int) ([]*MetaData, int, error) {
+func (dao *AssetTokenDao) GetPageByCodeWithTotal(code common.Hash, start, limit int) ([]*AssetToken, int, error) {
 	if code == (common.Hash{}) || (start < 0) || (limit <= 0) {
 		log.Errorf("get meta by code with total.addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
@@ -185,7 +185,7 @@ func (dao *MetaDataDao) GetPageByCodeWithTotal(code common.Hash, start, limit in
 	}
 }
 
-func (dao *MetaDataDao) query(id common.Hash) (*MetaData, int, error) {
+func (dao *AssetTokenDao) query(id common.Hash) (*AssetToken, int, error) {
 	sql := "SELECT code, addr, attrs, version FROM t_meta_data WHERE id = ?"
 	row := dao.engine.QueryRow(sql, id.Hex())
 	var code string
@@ -201,7 +201,7 @@ func (dao *MetaDataDao) query(id common.Hash) (*MetaData, int, error) {
 		return nil, -1, err
 	}
 
-	result := &MetaData{
+	result := &AssetToken{
 		Id:    id,
 		Code:  common.HexToHash(code),
 		Owner: common.HexToAddress(addr),
@@ -212,19 +212,19 @@ func (dao *MetaDataDao) query(id common.Hash) (*MetaData, int, error) {
 	if err != nil {
 		return nil, -1, err
 	} else {
-		result.Profile = profile
+		result.MetaData = profile
 		return result, version, nil
 	}
 }
 
-func (dao *MetaDataDao) insert(metaData *MetaData) error {
+func (dao *AssetTokenDao) insert(assetToken *AssetToken) error {
 	sql := "INSERT INTO t_meta_data(code, id, addr, attrs, version, utc_st)VALUES(?,?,?,?,?,?)"
-	val, err := rlp.EncodeToBytes(metaData.Profile)
+	val, err := rlp.EncodeToBytes(assetToken.MetaData)
 	if err != nil {
 		return err
 	}
 
-	result, err := dao.engine.Exec(sql, metaData.Code.Hex(), metaData.Id.Hex(), metaData.Owner.Hex(), val, 1, time.Now().UnixNano()/1000000)
+	result, err := dao.engine.Exec(sql, assetToken.Code.Hex(), assetToken.Id.Hex(), assetToken.Owner.Hex(), val, 1, time.Now().UnixNano()/1000000)
 	if err != nil {
 		return err
 	}
@@ -242,14 +242,14 @@ func (dao *MetaDataDao) insert(metaData *MetaData) error {
 	}
 }
 
-func (dao *MetaDataDao) update(metaData *MetaData, version int) error {
-	val, err := rlp.EncodeToBytes(metaData.Profile)
+func (dao *AssetTokenDao) update(assetToken *AssetToken, version int) error {
+	val, err := rlp.EncodeToBytes(assetToken.MetaData)
 	if err != nil {
 		return err
 	}
 
 	sql := "UPDATE t_meta_data SET attrs = ?, version = version + 1 WHERE id = ? AND code = ? AND addr = ? AND version = ?"
-	result, err := dao.engine.Exec(sql, val, metaData.Id.Hex(), metaData.Code.Hex(), metaData.Owner.Hex(), version)
+	result, err := dao.engine.Exec(sql, val, assetToken.Id.Hex(), assetToken.Code.Hex(), assetToken.Owner.Hex(), version)
 	if err != nil {
 		return err
 	}

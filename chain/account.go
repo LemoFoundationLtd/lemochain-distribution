@@ -15,7 +15,7 @@ type ReBuildAccount struct {
 	Code  []byte
 
 	AssetCodes    map[common.Hash]*types.Asset
-	AssetIds      map[common.Hash]string
+	MetaDatas     map[common.Hash]string
 	AssetEquities map[common.Hash]*types.AssetEquity
 	Storage       map[common.Hash][]byte
 	Events        []*types.Event
@@ -35,7 +35,7 @@ func NewReBuildAccount(store database.DBEngine, data *types.AccountData) *ReBuil
 	}
 
 	reBuildAccount.AssetCodes = make(map[common.Hash]*types.Asset)
-	reBuildAccount.AssetIds = make(map[common.Hash]string)
+	reBuildAccount.MetaDatas = make(map[common.Hash]string)
 	reBuildAccount.AssetEquities = make(map[common.Hash]*types.AssetEquity)
 	reBuildAccount.Storage = make(map[common.Hash][]byte)
 	reBuildAccount.Events = make([]*types.Event, 0)
@@ -376,26 +376,16 @@ func (account *ReBuildAccount) SetAssetCodeState(code common.Hash, key string, v
 	}
 }
 
-func (account *ReBuildAccount) GetAssetId(id common.Hash) (string, error) {
-	metaDataDao := database.NewMetaDataDao(account.Store)
-	val, err := metaDataDao.Get(id)
-	if err != nil {
-		return "", err
-	} else {
-		return val.Profile, nil
-	}
-}
-
 func (account *ReBuildAccount) GetAssetIdState(id common.Hash) (string, error) {
-	assetId, ok := account.AssetIds[id]
+	assetId, ok := account.MetaDatas[id]
 	if !ok {
-		metaDataDao := database.NewMetaDataDao(account.Store)
-		metaData, err := metaDataDao.Get(id)
+		AssetTokenDao := database.NewAssetTokenDao(account.Store)
+		assetToken, err := AssetTokenDao.Get(id)
 		if err != nil {
 			return "", err
 		} else {
-			account.AssetIds[id] = metaData.Profile
-			return metaData.Profile, nil
+			account.MetaDatas[id] = assetToken.MetaData
+			return assetToken.MetaData, nil
 		}
 	} else {
 		return assetId, nil
@@ -403,7 +393,7 @@ func (account *ReBuildAccount) GetAssetIdState(id common.Hash) (string, error) {
 }
 
 func (account *ReBuildAccount) SetAssetIdState(id common.Hash, data string) error {
-	account.AssetIds[id] = data
+	account.MetaDatas[id] = data
 	return nil
 }
 

@@ -213,7 +213,7 @@ func (engine *ReBuildEngine) filterSaveAssetTx(PHash common.Hash, tx *types.Tran
 			return err, true
 		}
 		assetId := tradingAsset.AssetId
-		assetIdDao := database.NewMetaDataDao(engine.Store)
+		assetIdDao := database.NewAssetTokenDao(engine.Store)
 		assetIdInfo, err := assetIdDao.Get(assetId)
 		if err != nil {
 			return err, true
@@ -317,12 +317,12 @@ func (engine *ReBuildEngine) saveAssetIdBatch(address common.Address, assetIds m
 }
 
 func (engine *ReBuildEngine) saveAssetId(address common.Address, hash common.Hash, assetId *types.IssueAsset) error {
-	assetIdDao := database.NewMetaDataDao(engine.Store)
-	return assetIdDao.Set(&database.MetaData{
-		Id:      hash,
-		Code:    assetId.AssetCode,
-		Owner:   address,
-		Profile: assetId.MetaData,
+	assetIdDao := database.NewAssetTokenDao(engine.Store)
+	return assetIdDao.Set(&database.AssetToken{
+		Id:       hash,
+		Code:     assetId.AssetCode,
+		Owner:    address,
+		MetaData: assetId.MetaData,
 	})
 }
 
@@ -341,10 +341,10 @@ func (engine *ReBuildEngine) saveEquity(address common.Address, equity *types.As
 	return equityDao.Set(address, equity)
 }
 
-func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, error) {
+func (engine *ReBuildEngine) getAssetTokens() (map[common.Hash]*types.IssueAsset, error) {
 	assetDao := database.NewAssetDao(engine.Store)
 	txes := engine.Block.Txs
-	assetIds := make(map[common.Hash]*types.IssueAsset)
+	assetTokens := make(map[common.Hash]*types.IssueAsset)
 	for index := 0; index < len(txes); index++ {
 		tx := txes[index]
 		if tx.Type() == params.IssueAssetTx {
@@ -367,19 +367,19 @@ func (engine *ReBuildEngine) getAssetIds() (map[common.Hash]*types.IssueAsset, e
 				}
 
 				if asset.Category == types.TokenAsset {
-					assetIds[asset.AssetCode] = issueAsset
+					assetTokens[asset.AssetCode] = issueAsset
 				} else {
-					assetIds[tx.Hash()] = issueAsset
+					assetTokens[tx.Hash()] = issueAsset
 				}
 			}
 		}
 	}
 
-	return assetIds, nil
+	return assetTokens, nil
 }
 
 func (engine *ReBuildEngine) resolve() error {
-	assetIds, err := engine.getAssetIds()
+	assetTokens, err := engine.getAssetTokens()
 	if err != nil {
 		return err
 	}
@@ -394,10 +394,10 @@ func (engine *ReBuildEngine) resolve() error {
 			engine.saveAssetCodeBatch(AssetCodeCache)
 		}
 
-		if len(v.AssetIds) > 0 {
+		if len(v.MetaDatas) > 0 {
 			AssetIdCache := make(map[common.Hash]*types.IssueAsset)
-			for ak, av := range v.AssetIds {
-				AssetCode := assetIds[ak].AssetCode
+			for ak, av := range v.MetaDatas {
+				AssetCode := assetTokens[ak].AssetCode
 				AssetIdCache[ak] = &types.IssueAsset{
 					AssetCode: AssetCode,
 					MetaData:  av,

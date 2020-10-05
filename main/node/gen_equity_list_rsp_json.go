@@ -10,37 +10,37 @@ import (
 	"github.com/LemoFoundationLtd/lemochain-core/common/hexutil"
 )
 
-var _ = (*AssetEquityBatchRspMarshaling)(nil)
+var _ = (*EquityListRspMarshaling)(nil)
 
 // MarshalJSON marshals as JSON.
-func (a AssetEquityBatchRsp) MarshalJSON() ([]byte, error) {
-	type AssetEquityBatchRsp struct {
+func (e EquityListRsp) MarshalJSON() ([]byte, error) {
+	type EquityListRsp struct {
 		Equities []*types.AssetEquity `json:"equities" gencodec:"required"`
 		Total    hexutil.Uint32       `json:"total" gencodec:"required"`
 	}
-	var enc AssetEquityBatchRsp
-	enc.Equities = a.Equities
-	enc.Total = hexutil.Uint32(a.Total)
+	var enc EquityListRsp
+	enc.Equities = e.Equities
+	enc.Total = hexutil.Uint32(e.Total)
 	return json.Marshal(&enc)
 }
 
 // UnmarshalJSON unmarshals from JSON.
-func (a *AssetEquityBatchRsp) UnmarshalJSON(input []byte) error {
-	type AssetEquityBatchRsp struct {
+func (e *EquityListRsp) UnmarshalJSON(input []byte) error {
+	type EquityListRsp struct {
 		Equities []*types.AssetEquity `json:"equities" gencodec:"required"`
 		Total    *hexutil.Uint32      `json:"total" gencodec:"required"`
 	}
-	var dec AssetEquityBatchRsp
+	var dec EquityListRsp
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
 	if dec.Equities == nil {
-		return errors.New("missing required field 'equities' for AssetEquityBatchRsp")
+		return errors.New("missing required field 'equities' for EquityListRsp")
 	}
-	a.Equities = dec.Equities
+	e.Equities = dec.Equities
 	if dec.Total == nil {
-		return errors.New("missing required field 'total' for AssetEquityBatchRsp")
+		return errors.New("missing required field 'total' for EquityListRsp")
 	}
-	a.Total = uint32(*dec.Total)
+	e.Total = uint32(*dec.Total)
 	return nil
 }

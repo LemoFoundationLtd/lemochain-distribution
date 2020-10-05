@@ -89,8 +89,8 @@ func (a *PublicAccountAPI) GetAccount(LemoAddress string) (*types.AccountData, e
 	return accountData, err
 }
 
-// GetAssetEquity returns asset equity
-func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId common.Hash) (*types.AssetEquity, error) {
+// GetEquity returns asset equity
+func (a *PublicAccountAPI) GetEquity(LemoAddress string, assetId common.Hash) (*types.AssetEquity, error) {
 	address, err := common.StringToAddress(LemoAddress)
 	if err != nil {
 		return nil, err
@@ -103,38 +103,17 @@ func (a *PublicAccountAPI) GetAssetEquityByAssetId(LemoAddress string, assetId c
 	return equityDao.Get(address, assetId)
 }
 
-//go:generate gencodec -type AssetEquityBatchRsp --field-override AssetEquityBatchRspMarshaling -out gen_asset_equity_rsp_json.go
-type AssetEquityBatchRsp struct {
+//go:generate gencodec -type EquityListRsp --field-override EquityListRspMarshaling -out gen_equity_list_rsp_json.go
+type EquityListRsp struct {
 	Equities []*types.AssetEquity `json:"equities" gencodec:"required"`
 	Total    uint32               `json:"total" gencodec:"required"`
 }
 
-type AssetEquityBatchRspMarshaling struct {
+type EquityListRspMarshaling struct {
 	Total hexutil.Uint32
 }
 
-func (a *PublicAccountAPI) GetAssetEquityByAssetCode(LemoAddress string, assetCode common.Hash, index, limit int) (*AssetEquityBatchRsp, error) {
-	address, err := common.StringToAddress(LemoAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
-	defer dbEngine.Close()
-
-	equityDao := database.NewEquityDao(dbEngine)
-	result, total, err := equityDao.GetPageByCodeWithTotal(address, assetCode, index, limit)
-	if err != nil {
-		return nil, err
-	} else {
-		return &AssetEquityBatchRsp{
-			Equities: result,
-			Total:    uint32(total),
-		}, nil
-	}
-}
-
-func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int) (*AssetEquityBatchRsp, error) {
+func (a *PublicAccountAPI) GetEquityList(LemoAddress string, index, limit int) (*EquityListRsp, error) {
 	address, err := common.StringToAddress(LemoAddress)
 	if err != nil {
 		return nil, err
@@ -148,7 +127,28 @@ func (a *PublicAccountAPI) GetAssetEquity(LemoAddress string, index, limit int) 
 	if err != nil {
 		return nil, err
 	} else {
-		return &AssetEquityBatchRsp{
+		return &EquityListRsp{
+			Equities: result,
+			Total:    uint32(total),
+		}, nil
+	}
+}
+
+func (a *PublicAccountAPI) GetEquityListByAssetCode(LemoAddress string, assetCode common.Hash, index, limit int) (*EquityListRsp, error) {
+	address, err := common.StringToAddress(LemoAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
+	defer dbEngine.Close()
+
+	equityDao := database.NewEquityDao(dbEngine)
+	result, total, err := equityDao.GetPageByCodeWithTotal(address, assetCode, index, limit)
+	if err != nil {
+		return nil, err
+	} else {
+		return &EquityListRsp{
 			Equities: result,
 			Total:    uint32(total),
 		}, nil
@@ -163,12 +163,12 @@ func (a *PublicAccountAPI) GetAsset(assetCode common.Hash) (*types.Asset, error)
 	return assetDao.Get(assetCode)
 }
 
-func (a *PublicAccountAPI) GetMetaData(assetId common.Hash) (*database.MetaData, error) {
+func (a *PublicAccountAPI) GetAssetToken(assetId common.Hash) (*database.AssetToken, error) {
 	dbEngine := database.NewMySqlDB(a.node.config.DbDriver, a.node.config.DbUri)
 	defer dbEngine.Close()
 
-	metaDataDao := database.NewMetaDataDao(dbEngine)
-	return metaDataDao.Get(assetId)
+	AssetTokenDao := database.NewAssetTokenDao(dbEngine)
+	return AssetTokenDao.Get(assetId)
 }
 
 //go:generate gencodec -type CandidateInfo -out gen_candidate_info_json.go

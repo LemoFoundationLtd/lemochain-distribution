@@ -165,8 +165,8 @@ func (dao *EquityDao) GetPageByCodeWithTotal(addr common.Address, code common.Ha
 		return nil, -1, ErrArgInvalid
 	}
 
-	sql := "SELECT count(*) as cnt FROM t_equity WHERE addr = ?"
-	row := dao.engine.QueryRow(sql, addr.Hex())
+	sql := "SELECT count(*) as cnt FROM t_equity WHERE addr = ? AND code = ?"
+	row := dao.engine.QueryRow(sql, addr.Hex(), code.Hex())
 	var cnt int
 	err := row.Scan(&cnt)
 	if err != nil {
