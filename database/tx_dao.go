@@ -325,6 +325,48 @@ func (dao *TxDao) GetByToWithTotal(addr common.Address, start, limit int) ([]*Tx
 	}
 }
 
+func (dao *TxDao) GetByType(addr common.Address, txType uint16, start, limit int) ([]*Tx, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by type. addr is common.address{} or start < 0 or limit <= 0")
+		return nil, ErrArgInvalid
+	}
+
+	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE (faddr = ? OR taddr = ?) AND (flag = ?) ORDER BY utc_st DESC LIMIT ?, ?"
+	stmt, err := dao.engine.Prepare(sqlQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(addr.Hex(), addr.Hex(), txType, start, start+limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return dao.buildTxBatch(rows)
+}
+
+func (dao *TxDao) GetByTypeWithTotal(addr common.Address, txType uint16, start, limit int) ([]*Tx, int, error) {
+	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by type with total. addr is common.address{} or start < 0 or limit <= 0")
+		return nil, -1, ErrArgInvalid
+	}
+
+	sqlTotal := "SELECT count(*) as cnt FROM t_tx WHERE (faddr = ? OR taddr = ?) AND (flag = ?)"
+	row := dao.engine.QueryRow(sqlTotal, addr.Hex(), addr.Hex(), txType)
+	var cnt int
+	err := row.Scan(&cnt)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	txes, err := dao.GetByType(addr, txType, start, limit)
+	if err != nil {
+		return nil, -1, err
+	} else {
+		return txes, cnt, nil
+	}
+}
+
 // 通过 address 和 assetCode或者assetId查询交易
 func (dao *TxDao) GetByAddressAndAssetCodeOrAssetId(addr common.Address, assetCodeOrId common.Hash, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || assetCodeOrId == (common.Hash{}) || (start < 0) || (limit <= 0) {

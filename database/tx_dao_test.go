@@ -1,6 +1,7 @@
 package database
 
 import (
+	"github.com/LemoFoundationLtd/lemochain-core/chain/params"
 	"github.com/LemoFoundationLtd/lemochain-core/chain/types"
 	"github.com/LemoFoundationLtd/lemochain-core/common"
 	"github.com/stretchr/testify/assert"
@@ -219,6 +220,33 @@ func TestTxDao_ArgInvalid(t *testing.T) {
 	assert.Nil(t, result1)
 }
 
+func TestTxDao_GetByTypeWithTotal(t *testing.T) {
+	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
+	defer db.Close()
+	defer db.Clear()
+	txDao := NewTxDao(db)
+
+	tx10 := NewTx10()
+	for index := 0; index < len(tx10); index++ {
+		txDao.Set(tx10[index])
+	}
+
+	txs, total, err := txDao.GetByTypeWithTotal(tx10[0].From, params.OrdinaryTx, 0, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, total)
+	assert.Equal(t, 10, len(txs))
+
+	txs, total, err = txDao.GetByTypeWithTotal(tx10[0].To, params.OrdinaryTx, 0, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, total)
+	assert.Equal(t, 10, len(txs))
+
+	txs, total, err = txDao.GetByTypeWithTotal(tx10[0].From, params.VoteTx, 0, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Equal(t, 0, len(txs))
+}
+
 func TestTxDao_GetByAddressAndAssetCodeOrAssetIdWithTotal(t *testing.T) {
 	db := NewMySqlDB(DRIVER_MYSQL, HOST_MYSQL)
 	defer db.Close()
@@ -230,11 +258,8 @@ func TestTxDao_GetByAddressAndAssetCodeOrAssetIdWithTotal(t *testing.T) {
 		txDao.Set(tx10[index])
 	}
 
-	for i := 0; i < len(tx10); i++ {
-		txs, total, err := txDao.GetByAddressAndAssetCodeOrAssetIdWithTotal(tx10[i].From, tx10[i].AssetCode, 0, 100)
-		assert.NoError(t, err)
-		assert.Equal(t, 10, total)
-		assert.Equal(t, 10, len(txs))
-	}
-
+	txs, total, err := txDao.GetByAddressAndAssetCodeOrAssetIdWithTotal(tx10[0].From, tx10[0].AssetCode, 0, 100)
+	assert.NoError(t, err)
+	assert.Equal(t, 10, total)
+	assert.Equal(t, 10, len(txs))
 }
