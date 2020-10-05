@@ -34,7 +34,7 @@ func NewTxDao(db DBEngine) *TxDao {
 
 func (dao *TxDao) Set(tx *Tx) error {
 	if tx == nil {
-		log.Errorf("set tx.tx is nil.")
+		log.Errorf("set tx. tx is nil.")
 		return ErrArgInvalid
 	}
 
@@ -56,7 +56,7 @@ func (dao *TxDao) Set(tx *Tx) error {
 
 func (dao *TxDao) Get(hash common.Hash) (*Tx, error) {
 	if hash == (common.Hash{}) {
-		log.Errorf("get tx.hash is common.hash{}")
+		log.Errorf("get tx. hash is common.hash{}")
 		return nil, ErrArgInvalid
 	}
 
@@ -159,7 +159,7 @@ func (dao *TxDao) buildTxBatch(rows *sql.Rows) ([]*Tx, error) {
 
 func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by addr.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get tx by addr. addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -179,7 +179,7 @@ func (dao *TxDao) GetByAddr(addr common.Address, start, limit int) ([]*Tx, error
 
 func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, limit int) ([]*Tx, int, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by addr with total.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get tx by addr with total. addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -201,7 +201,7 @@ func (dao *TxDao) GetByAddrWithTotal(addr common.Address, start, limit int) ([]*
 
 func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by time.addr is common.address{} or time stamp < 0 or start < 0 or limit <= 0")
+		log.Errorf("get tx by time. addr is common.address{} or time stamp < 0 or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -221,7 +221,7 @@ func (dao *TxDao) GetByTime(addr common.Address, stStart, stStop int64, start, l
 
 func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64, start, limit int) ([]*Tx, int, error) {
 	if addr == (common.Address{}) || (stStart < 0) || (stStop < 0) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by time with total.addr is common.address{} or time stamp < 0 or start < 0 or limit <= 0")
+		log.Errorf("get tx by time with total. addr is common.address{} or time stamp < 0 or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -243,7 +243,7 @@ func (dao *TxDao) GetByTimeWithTotal(addr common.Address, stStart, stStop int64,
 
 func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by from.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get tx by from. addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -263,7 +263,7 @@ func (dao *TxDao) GetByFrom(addr common.Address, start, limit int) ([]*Tx, error
 
 func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, limit int) ([]*Tx, int, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by from with total.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get tx by from with total. addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -285,7 +285,7 @@ func (dao *TxDao) GetByFromWithTotal(addr common.Address, start, limit int) ([]*
 
 func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by to.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get tx by to. addr is common.address{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 
@@ -305,7 +305,7 @@ func (dao *TxDao) GetByTo(addr common.Address, start, limit int) ([]*Tx, error) 
 
 func (dao *TxDao) GetByToWithTotal(addr common.Address, start, limit int) ([]*Tx, int, error) {
 	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by to with total.addr is common.address{} or start < 0 or limit <= 0")
+		log.Errorf("get tx by to with total. addr is common.address{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 
@@ -327,8 +327,8 @@ func (dao *TxDao) GetByToWithTotal(addr common.Address, start, limit int) ([]*Tx
 
 // 通过 address 和 assetCode或者assetId查询交易
 func (dao *TxDao) GetByAddressAndAssetCodeOrAssetId(addr common.Address, assetCodeOrId common.Hash, start, limit int) ([]*Tx, error) {
-	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by addr.addr is common.address{} or start < 0 or limit <= 0")
+	if addr == (common.Address{}) || assetCodeOrId == (common.Hash{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by asset. addr is common.address{} or asset is common.Hash{} or start < 0 or limit <= 0")
 		return nil, ErrArgInvalid
 	}
 	sqlQuery := "SELECT thash, phash, bhash, height, faddr, taddr, tx, flag, utc_st, package_time,asset_code,asset_id FROM t_tx WHERE (faddr = ? OR taddr = ?) AND (asset_code = ? OR asset_id = ?) ORDER BY utc_st DESC LIMIT ?, ?"
@@ -344,8 +344,8 @@ func (dao *TxDao) GetByAddressAndAssetCodeOrAssetId(addr common.Address, assetCo
 }
 
 func (dao *TxDao) GetByAddressAndAssetCodeOrAssetIdWithTotal(addr common.Address, assetCodeOrId common.Hash, start, limit int) ([]*Tx, int, error) {
-	if addr == (common.Address{}) || (start < 0) || (limit <= 0) {
-		log.Errorf("get tx by addr with total.addr is common.address{} or start < 0 or limit <= 0")
+	if addr == (common.Address{}) || assetCodeOrId == (common.Hash{}) || (start < 0) || (limit <= 0) {
+		log.Errorf("get tx by asset with total. addr is common.address{} or asset is common.Hash{} or start < 0 or limit <= 0")
 		return nil, -1, ErrArgInvalid
 	}
 	sqlTotal := "SELECT count(*) as cnt FROM t_tx WHERE (faddr = ? OR taddr = ?) AND (asset_code = ? OR asset_id = ?)"

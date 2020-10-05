@@ -170,14 +170,14 @@ func (engine *ReBuildEngine) filterSaveAssetTx(PHash common.Hash, tx *types.Tran
 		if err != nil {
 			return err, true
 		}
-		AssType := asset.Category
+		assetType := asset.Category
 		var assetId common.Hash
-		if AssType == types.TokenAsset {
+		if assetType == types.TokenAsset {
 			assetId = assetCode
-		} else if AssType == types.NonFungibleAsset || AssType == types.CommonAsset { // ERC721 or ERC721+20
+		} else if assetType == types.NonFungibleAsset || assetType == types.CommonAsset { // ERC721 or ERC721+20
 			assetId = tx.Hash()
 		} else {
-			log.Errorf("Assert's Category not exist ,Category = %d ", AssType)
+			log.Errorf("Asset's Category not exist, Category = %d ", assetType)
 			return transaction.ErrAssetCategory, true
 		}
 		// 2. 保存交易进数据库
@@ -213,8 +213,13 @@ func (engine *ReBuildEngine) filterSaveAssetTx(PHash common.Hash, tx *types.Tran
 			return err, true
 		}
 		assetId := tradingAsset.AssetId
+		assetIdDao := database.NewMetaDataDao(engine.Store)
+		assetIdInfo, err := assetIdDao.Get(assetId)
+		if err != nil {
+			return err, true
+		}
 		// 2. 保存交易进数据库
-		dbTx := engine.sealDbTx(PHash, common.Hash{}, assetId, tx)
+		dbTx := engine.sealDbTx(PHash, assetIdInfo.Code, assetId, tx)
 		return txDao.Set(dbTx), true
 
 	default:
