@@ -2,6 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/LemoFoundationLtd/lemochain-core v1.4.2 h1:AY7K9oWUuZX63s5VUHBmJKQlSJArQn90dEj5r7CpjGQ=
 github.com/LemoFoundationLtd/lemochain-core v1.4.2/go.mod h1:uDzGUi5QZv94NOIANf/viMHU8FqRQ4PEB5AaJaDnFUU=
+github.com/LemoFoundationLtd/lemochain-core v1.4.3 h1:S3c5NLIB75hPwv8McB9UhGYHENkKaLh9kohE65gaoZs=
+github.com/LemoFoundationLtd/lemochain-core v1.4.3/go.mod h1:uDzGUi5QZv94NOIANf/viMHU8FqRQ4PEB5AaJaDnFUU=
 github.com/Shopify/sarama v1.26.1/go.mod h1:NbSGBSSndYaIhRcBtY9V0U7AyH+x71bG668AuWys/yU=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

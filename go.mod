@@ -3,7 +3,7 @@ module github.com/LemoFoundationLtd/lemochain-distribution
 go 1.14
 
 require (
-	github.com/LemoFoundationLtd/lemochain-core v1.4.2
+	github.com/LemoFoundationLtd/lemochain-core v1.4.3
 	github.com/aristanetworks/goarista v0.0.0-20200805130819-fd197cf57d96 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/go-sql-driver/mysql v1.4.1-0.20190308052631-2c9d54fefcfb
